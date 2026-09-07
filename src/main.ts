@@ -1,4 +1,6 @@
 import { Editor, MarkdownPostProcessorContext, Notice, Plugin, TAbstractFile, TFile } from "obsidian";
+import { scheduleInEditor, selectionHasTask, selectionSchedule } from "./actions";
+import { ScheduleModal } from "./schedule";
 import { DEFAULT_SETTINGS, RolloverSettings, RolloverSettingTab } from "./settings";
 import { parseBlockOptions, RolloverBlock } from "./render";
 import { tagContinuationExtension, toggleTagInEditor } from "./tagging";
@@ -55,6 +57,26 @@ export default class TaskRolloverPlugin extends Plugin {
 					this.settings.promoteOnToggle
 				);
 				if (changed === 0) new Notice("Nothing to tag here.");
+			}
+		});
+
+		this.addCommand({
+			id: "schedule-task",
+			name: "Schedule the task on the current line or selection",
+			editorCallback: (editor: Editor) => {
+				if (!selectionHasTask(editor)) {
+					new Notice("No task on this line.");
+					return;
+				}
+				const existing = selectionSchedule(editor);
+				new ScheduleModal(this.app, {
+					initial: existing,
+					allowClear: existing !== null,
+					onPick: (date) => {
+						const changed = scheduleInEditor(editor, date, this.settings.scheduleStyle);
+						if (changed === 0) new Notice("No task on this line.");
+					}
+				}).open();
 			}
 		});
 
