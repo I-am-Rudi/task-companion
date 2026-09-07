@@ -1,5 +1,6 @@
 import { Editor, MarkdownPostProcessorContext, Notice, Plugin, TAbstractFile, TFile } from "obsidian";
 import { scheduleInEditor, selectionHasTask, selectionSchedule } from "./actions";
+import { inlineScheduleExtension, inlineSchedulePostProcessor } from "./inline";
 import { ScheduleModal } from "./schedule";
 import { DEFAULT_SETTINGS, RolloverSettings, RolloverSettingTab } from "./settings";
 import { parseBlockOptions, RolloverBlock } from "./render";
@@ -79,6 +80,11 @@ export default class TaskRolloverPlugin extends Plugin {
 				}).open();
 			}
 		});
+
+		// The schedule icon beside a tagged task: a CodeMirror widget in live
+		// preview and source mode, a post processor in reading view.
+		this.registerEditorExtension(inlineScheduleExtension(this));
+		this.registerMarkdownPostProcessor(inlineSchedulePostProcessor(this));
 
 		this.registerEditorExtension(
 			tagContinuationExtension(

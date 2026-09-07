@@ -60,8 +60,11 @@ puts it in the inbox.
 **Schedule the task on the current line or selection.** Run it anywhere in the
 vault — the task doesn't have to be tagged, or in a periodic note — and a small
 date prompt opens with the field already focused, so a date is one short burst
-of typing and enter. The same prompt is behind the calendar button on every
-rollover row.
+of typing and enter.
+
+The same prompt is a click away too: hover a tagged task anywhere in a note, in
+either editing or reading view, and a calendar icon appears beside it. Turn that
+off with *Calendar icon on tagged tasks* if you'd rather use the command alone.
 
 The field takes rather more than an ISO date:
 
@@ -146,7 +149,7 @@ Hover a row to reveal its actions:
 - **open** — open the source note
 - **move here** — move the task and its subtasks under the target heading in the current note
 - **put on hold** — move the task and its subtasks to the collection note (`periodic` mode)
-- **schedule** — opens the date prompt above; writes `[scheduled:: …]` or `⏳ …`
+- **schedule** — opens the date prompt above (`unscheduled` mode)
 
 Subtasks render nested and always travel with their parent. A move inserts into
 the destination before cutting from the source, so an interrupted move leaves a
@@ -156,7 +159,7 @@ duplicate rather than losing the task.
 
 Task tag, whether the tag must start the line, target heading, collection note,
 excluded folders, and schedule format. Under **Editing**, the two tagging
-behaviours above. Under **Periodic notes**, per-granularity folder and format
+behaviours above and whether tagged tasks show the calendar icon on hover. Under **Periodic notes**, per-granularity folder and format
 fallbacks, used only where Periodic Notes isn't supplying them.
 
 ## Performance

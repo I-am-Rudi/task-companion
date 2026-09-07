@@ -272,8 +272,8 @@ export class RolloverBlock extends MarkdownRenderChild {
 				this.plugin.app.workspace.openLinkText(task.path, "", false);
 			});
 
-			this.addScheduleControl(actions, item, task);
-			if (this.options.mode !== "unscheduled") this.addMoveControls(actions, item, task);
+			if (this.options.mode === "unscheduled") this.addScheduleControl(actions, item, task);
+			else this.addMoveControls(actions, item, task);
 		}
 
 		if (task.children.length) {
@@ -338,9 +338,11 @@ export class RolloverBlock extends MarkdownRenderChild {
 	}
 
 	/**
-	 * Scheduling from the list, through the same prompt the command uses — so a
-	 * date is picked the same way whether the task is under the cursor or in a
-	 * rollover block.
+	 * The one control `unscheduled` mode has ever had, now opening the same
+	 * prompt as the command and the in-note icon rather than a bare date input.
+	 * The other modes deliberately don't get one: their rows already carry the
+	 * actions that matter there, and a task can be scheduled from the note it
+	 * lives in.
 	 */
 	private addScheduleControl(actions: HTMLElement, item: HTMLElement, task: TaskItem) {
 		const existing = task.scheduled;
