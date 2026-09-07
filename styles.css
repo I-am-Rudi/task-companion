@@ -1,0 +1,105 @@
+/*
+ * Task Rollover Companion
+ *
+ * Everything here leans on Obsidian's CSS variables so themes and snippets can
+ * restyle the plugin. No colours, sizes or spacings are invented outright.
+ */
+
+.trc-block {
+	margin: 0;
+}
+
+.trc-title {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+	margin-bottom: var(--size-2-2);
+}
+
+.trc-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin: 0;
+}
+
+.trc-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.trc-sublist {
+	padding-left: var(--size-4-5);
+}
+
+.trc-item {
+	margin: 0;
+}
+
+.trc-row {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-2-2);
+	padding: var(--size-2-1) 0;
+	min-height: var(--size-4-6);
+}
+
+/* The action buttons only appear once the row is worth acting on, so the list
+   stays quiet until the pointer is over it. Always visible on touch. */
+.trc-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-1);
+	margin-left: auto;
+	opacity: 0;
+	transition: opacity 100ms ease-in-out;
+}
+
+.trc-row:hover .trc-actions,
+.trc-row:focus-within .trc-actions {
+	opacity: 1;
+}
+
+body.is-mobile .trc-actions {
+	opacity: 1;
+}
+
+.trc-action {
+	flex-shrink: 0;
+}
+
+.trc-check {
+	flex-shrink: 0;
+	cursor: pointer;
+	margin: 0;
+}
+
+.trc-text {
+	color: var(--text-normal);
+	overflow-wrap: anywhere;
+}
+
+.trc-text.is-done {
+	text-decoration: line-through;
+	color: var(--text-muted);
+}
+
+.trc-source {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+.trc-date {
+	font-size: var(--font-ui-smaller);
+	max-width: 9em;
+}
+
+.trc-hidden {
+	display: none;
+}
+
+.trc-item.is-retired > .trc-row,
+.trc-item.is-retired .trc-sublist {
+	opacity: 0.5;
+	pointer-events: none;
+}

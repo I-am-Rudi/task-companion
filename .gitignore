@@ -1,0 +1,18 @@
+# Build output — shipped in releases, never committed
+main.js
+main.js.map
+*.js.map
+
+# Dependencies
+node_modules
+
+# Plugin data written by Obsidian at runtime
+data.json
+.hot-reload
+
+# Working notes, not part of the plugin
+CLAUDE.md
+
+# OS / editor cruft
+.DS_Store
+.vscode
