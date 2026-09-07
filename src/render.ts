@@ -1,6 +1,14 @@
 import { MarkdownRenderChild, Notice, moment, setIcon, setTooltip } from "obsidian";
 import type TaskRolloverPlugin from "./main";
-import { displayText, editTaskLine, markDone, moveTask, withSchedule } from "./actions";
+import {
+	displayText,
+	editTaskLine,
+	markDone,
+	moveTask,
+	withoutSchedule,
+	withSchedule
+} from "./actions";
+import { ScheduleModal } from "./schedule";
 import { inAnyFolder, noteAt, normalizeFolder } from "./paths";
 import {
 	allPeriodicFolders,
@@ -264,8 +272,8 @@ export class RolloverBlock extends MarkdownRenderChild {
 				this.plugin.app.workspace.openLinkText(task.path, "", false);
 			});
 
-			if (this.options.mode === "unscheduled") this.addScheduleControl(actions, item, task);
-			else this.addMoveControls(actions, item, task);
+			this.addScheduleControl(actions, item, task);
+			if (this.options.mode !== "unscheduled") this.addMoveControls(actions, item, task);
 		}
 
 		if (task.children.length) {
@@ -329,34 +337,40 @@ export class RolloverBlock extends MarkdownRenderChild {
 		});
 	}
 
+	/**
+	 * Scheduling from the list, through the same prompt the command uses — so a
+	 * date is picked the same way whether the task is under the cursor or in a
+	 * rollover block.
+	 */
 	private addScheduleControl(actions: HTMLElement, item: HTMLElement, task: TaskItem) {
-		// showPicker is not in the DOM lib this project targets, and is absent
-		// on older webviews, so it is probed rather than assumed.
-		const picker: HTMLInputElement & { showPicker?: () => void } = actions.createEl("input", {
-			cls: "trc-date",
-			type: "date"
-		});
-		picker.addClass("trc-hidden");
+		const existing = task.scheduled;
 
-		this.addAction(actions, "calendar", "Schedule", () => {
-			picker.removeClass("trc-hidden");
-			if (typeof picker.showPicker === "function") picker.showPicker();
-			else picker.focus();
-		});
-
-		picker.addEventListener("change", async (event) => {
-			event.stopPropagation();
-			const date = picker.value;
-			if (!date) return;
-			const ok = await editTaskLine(this.plugin.app, task, (line) =>
-				withSchedule(line, date, this.settings.scheduleStyle)
-			);
-			picker.addClass("trc-hidden");
-			if (!ok) {
-				new Notice("Could not find that task in its note.");
-				return;
-			}
-			this.retire(item);
+		this.addAction(actions, "calendar", existing ? `Scheduled ${existing}` : "Schedule", () => {
+			new ScheduleModal(this.plugin.app, {
+				subject: displayText(task, this.settings.taskTag),
+				initial: existing,
+				allowClear: existing !== null,
+				onPick: async (date) => {
+					const ok = await editTaskLine(this.plugin.app, task, (line) =>
+						date === null
+							? withoutSchedule(line)
+							: withSchedule(line, date, this.settings.scheduleStyle)
+					);
+					if (!ok) {
+						new Notice("Could not find that task in its note.");
+						return;
+					}
+					if (date === null) {
+						new Notice("Date cleared.");
+						return;
+					}
+					new Notice(`Scheduled for ${date}.`);
+					// In unscheduled mode the task has just left the query, so
+					// grey it out rather than leave it looking actionable until
+					// the index catches up.
+					if (this.options.mode === "unscheduled") this.retire(item);
+				}
+			}).open();
 		});
 	}
 }

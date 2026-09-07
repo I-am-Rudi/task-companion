@@ -55,6 +55,39 @@ Obsidian's normal behaviour.
 Both features use the same tag as the rollover blocks, so tagging a line is what
 puts it in the inbox.
 
+## Scheduling tasks
+
+**Schedule the task on the current line or selection.** Run it anywhere in the
+vault — the task doesn't have to be tagged, or in a periodic note — and a small
+date prompt opens with the field already focused, so a date is one short burst
+of typing and enter. The same prompt is behind the calendar button on every
+rollover row.
+
+The field takes rather more than an ISO date:
+
+| You type | You get |
+| --- | --- |
+| `today`, `tomorrow`, `tmr`, `yesterday` | the obvious thing |
+| `fri`, `friday`, `next friday` | the next Friday — never today |
+| `next week`, `next month`, `next year` | a week, month or year out |
+| `+3`, `+3d`, `2w`, `+1m`, `-2d` | an offset in days, weeks, months or years |
+| `22` | the 22nd — this month, or next if it's gone |
+| `12-01`, `12 dec`, `dec 12` | that day this year, or next if it's gone |
+| `2026-12-01`, `2026/12/01` | exactly that |
+
+Anything ambiguous resolves forwards, since this only ever schedules work. What
+you've typed so far is spelled out beneath the field, and the month below
+follows along: click a day to schedule it straight away, or tab into the grid
+and walk it with the arrow keys (page up and down move by month). If the task
+already has a date, it's there when the prompt opens, and **Clear date** removes
+it.
+
+The date is written in whichever notation *Schedule format* is set to —
+`[scheduled:: 2026-12-01]` or `⏳ 2026-12-01` — replacing any date already on the
+line, in either notation. A selection spanning several tasks schedules them all
+in one step; lines that aren't checklist items are left alone. There's no
+default hotkey — bind one in Settings → Hotkeys.
+
 ## Blocks
 
 Three modes, each placed as its own block so you can position them freely.
@@ -113,7 +146,7 @@ Hover a row to reveal its actions:
 - **open** — open the source note
 - **move here** — move the task and its subtasks under the target heading in the current note
 - **put on hold** — move the task and its subtasks to the collection note (`periodic` mode)
-- **schedule** — pick a date; writes `[scheduled:: …]` or `⏳ …` (`unscheduled` mode)
+- **schedule** — opens the date prompt above; writes `[scheduled:: …]` or `⏳ …`
 
 Subtasks render nested and always travel with their parent. A move inserts into
 the destination before cutting from the source, so an interrupted move leaves a
@@ -156,9 +189,10 @@ npm test        # run the test suites
 
 `npm test` bundles each suite in `tests/` against a stub of the `obsidian`
 module and runs it in node, covering the pure logic: task parsing, tagging, tag
-continuation, path handling, periodic-note detection and the line-edit layer
-that writes to files. Anything needing a live app — rendering, the settings tab,
-the metadata cache — has to be tried in Obsidian.
+continuation, path handling, periodic-note detection, date input and the
+line-edit layer that writes to files. Anything needing a live app — rendering,
+the settings tab, the date prompt, the metadata cache — has to be tried in
+Obsidian.
 
 Releases are cut by pushing a tag: the workflow in `.github/workflows/main.yml`
 stamps the version into `manifest.json`, `versions.json` and `package.json`,
