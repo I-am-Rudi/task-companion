@@ -110,9 +110,26 @@ export function stripAnnotations(text: string): string {
 		.trimEnd();
 }
 
-export function displayText(task: TaskItem, tag: string): string {
-	const withoutTag = task.raw.replace(new RegExp("(^|\\s)" + tag + "(?=\\s|$)", "g"), " ");
+/** A task line reduced to the words in it: no checkbox, no tag, no annotations. */
+export function lineSubject(line: string, tag: string): string {
+	const content = line.replace(/^[ \t]*[-*+]\s*\[.\][ \t]?/, "");
+	const withoutTag = content.replace(new RegExp("(^|\\s)" + tag + "(?=\\s|$)", "g"), " ");
 	return stripAnnotations(withoutTag).trim();
+}
+
+export function displayText(task: TaskItem, tag: string): string {
+	return lineSubject(task.raw, tag);
+}
+
+/**
+ * What it takes to find a line again: where it was, and what it said. `TaskItem`
+ * satisfies this, and so does a line picked straight out of a rendered note.
+ */
+export interface LineRef {
+	path: string;
+	line: number;
+	/** The line's content after the checkbox. */
+	raw: string;
 }
 
 /**
@@ -120,7 +137,7 @@ export function displayText(task: TaskItem, tag: string): string {
  * same file may have shifted everything below it. The tradeoff is that two
  * byte-identical task lines in one file can resolve to the wrong one.
  */
-function findLine(lines: string[], task: TaskItem): number {
+function findLine(lines: string[], task: LineRef): number {
 	const needle = task.raw.trim();
 	if (!needle) return -1;
 	if (lines[task.line]?.includes(needle)) return task.line;
@@ -154,7 +171,7 @@ function extractBlock(lines: string[], start: number): string[] {
 }
 
 /** Read a task's block without touching the file. */
-export async function readBlock(app: App, task: TaskItem): Promise<string[] | null> {
+export async function readBlock(app: App, task: LineRef): Promise<string[] | null> {
 	const file = app.vault.getFileByPath(task.path);
 	if (!file) return null;
 
@@ -165,7 +182,7 @@ export async function readBlock(app: App, task: TaskItem): Promise<string[] | nu
 }
 
 /** Remove a task's block from its source note. */
-export async function removeBlock(app: App, task: TaskItem): Promise<boolean> {
+export async function removeBlock(app: App, task: LineRef): Promise<boolean> {
 	const file = app.vault.getFileByPath(task.path);
 	if (!file) return false;
 
@@ -232,7 +249,7 @@ export async function moveTask(
 
 export async function editTaskLine(
 	app: App,
-	task: TaskItem,
+	task: LineRef,
 	transform: (line: string) => string
 ): Promise<boolean> {
 	const file = app.vault.getFileByPath(task.path);
@@ -336,6 +353,14 @@ export function selectionHasTask(editor: Editor): boolean {
 	return false;
 }
 
+/** The scheduled date a line already carries, in either notation. */
+export function scheduleOf(line: string): string | null {
+	const found =
+		line.match(/\[\s*scheduled\s*::\s*(\d{4}-\d{2}-\d{2})/i) ??
+		line.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
+	return found ? found[1] : null;
+}
+
 /** The date already on the first task line of the selection, if there is one. */
 export function selectionSchedule(editor: Editor): string | null {
 	for (const selection of editor.listSelections()) {
@@ -344,9 +369,8 @@ export function selectionSchedule(editor: Editor): string | null {
 		for (let line = from; line <= to; line++) {
 			const text = editor.getLine(line);
 			if (!isTaskLine(text)) continue;
-			const found = text.match(/\[\s*scheduled\s*::\s*(\d{4}-\d{2}-\d{2})/i)
-				?? text.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
-			if (found) return found[1];
+			const found = scheduleOf(text);
+			if (found) return found;
 		}
 	}
 	return null;

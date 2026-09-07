@@ -18,6 +18,15 @@ export class Component {
 	onunload() {}
 }
 
+/*
+ * UI helpers. Nothing under test renders anything, but the modules that hold
+ * the logic being tested import them, so they have to exist.
+ */
+export function setIcon() {}
+export function setTooltip() {}
+export class Modal {}
+export class Notice {}
+
 /** Mirrors Obsidian's own normalizePath closely enough for these tests. */
 export function normalizePath(path) {
 	const normalized = path

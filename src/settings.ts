@@ -19,6 +19,8 @@ export interface RolloverSettings {
 	promoteOnToggle: boolean;
 	/** Whether Enter on a tagged task carries the tag onto the next line. */
 	continueTagOnEnter: boolean;
+	/** Whether hovering a tagged task in a note reveals a schedule button. */
+	showScheduleIcon: boolean;
 	/** Used only where Periodic Notes is absent or has no config for a granularity. */
 	fallbackPeriodic: PeriodicFallbacks;
 }
@@ -32,6 +34,7 @@ export const DEFAULT_SETTINGS: RolloverSettings = {
 	scheduleStyle: "dataview",
 	promoteOnToggle: true,
 	continueTagOnEnter: true,
+	showScheduleIcon: true,
 	fallbackPeriodic: {
 		day: { folder: "Journal/Daily", format: DEFAULT_FORMAT.day },
 		week: { folder: "Journal/Weekly", format: DEFAULT_FORMAT.week },
@@ -152,6 +155,21 @@ export class RolloverSettingTab extends PluginSettingTab {
 				toggle.setValue(settings.continueTagOnEnter).onChange(async (value) => {
 					settings.continueTagOnEnter = value;
 					await save();
+				})
+			);
+
+		new Setting(containerEl)
+			.setName("Calendar icon on tagged tasks")
+			.setDesc(
+				"Hovering a tagged task anywhere in a note reveals a button that opens the date picker. The command works either way."
+			)
+			.addToggle((toggle) =>
+				toggle.setValue(settings.showScheduleIcon).onChange(async (value) => {
+					settings.showScheduleIcon = value;
+					await save();
+					// The editor extension reads this when it builds, so the
+					// open editors need telling to rebuild.
+					this.app.workspace.updateOptions();
 				})
 			);
 
