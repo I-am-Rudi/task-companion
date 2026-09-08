@@ -9,13 +9,7 @@ import {
 	WidgetType
 } from "@codemirror/view";
 import { App, MarkdownPostProcessorContext, Notice, setIcon, setTooltip } from "obsidian";
-import {
-	editTaskLine,
-	lineSubject,
-	scheduleOf,
-	withoutSchedule,
-	withSchedule
-} from "./actions";
+import { DateField, dateOn, editTaskLine, lineSubject, withDate, withoutDate } from "./actions";
 import type TaskRolloverPlugin from "./main";
 import { ScheduleModal } from "./schedule";
 import { isTaggedTask } from "./tagging";
@@ -49,13 +43,11 @@ function openPrompt(
 	app: App,
 	tag: string,
 	line: string,
-	onPick: (date: string | null) => void | Promise<void>
+	onPick: (date: string | null, field: DateField) => void | Promise<void>
 ) {
-	const existing = scheduleOf(line);
 	new ScheduleModal(app, {
 		subject: lineSubject(line, tag),
-		initial: existing,
-		allowClear: existing !== null,
+		current: (field) => dateOn(line, field),
 		onPick
 	}).open();
 }
@@ -89,12 +81,12 @@ class ScheduleWidget extends WidgetType {
 		const settings = this.plugin.settings;
 		const at = view.state.doc.lineAt(view.posAtDOM(dom));
 
-		openPrompt(this.plugin.app, settings.taskTag, at.text, (date) => {
+		openPrompt(this.plugin.app, settings.taskTag, at.text, (date, field) => {
 			const line = view.state.doc.lineAt(view.posAtDOM(dom));
 			const text =
 				date === null
-					? withoutSchedule(line.text)
-					: withSchedule(line.text, date, settings.scheduleStyle);
+					? withoutDate(line.text, field)
+					: withDate(line.text, field, date, settings.scheduleStyle);
 			if (text === line.text) return;
 			view.dispatch({ changes: { from: line.from, to: line.to, insert: text } });
 		});
@@ -192,11 +184,11 @@ export function inlineSchedulePostProcessor(plugin: TaskRolloverPlugin) {
 
 			item.appendChild(
 				scheduleButton(() => {
-					openPrompt(plugin.app, tag, source, async (date) => {
+					openPrompt(plugin.app, tag, source, async (date, field) => {
 						const ok = await editTaskLine(plugin.app, ref, (line) =>
 							date === null
-								? withoutSchedule(line)
-								: withSchedule(line, date, plugin.settings.scheduleStyle)
+								? withoutDate(line, field)
+								: withDate(line, field, date, plugin.settings.scheduleStyle)
 						);
 						if (!ok) new Notice("Could not find that task in its note.");
 					});

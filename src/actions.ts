@@ -275,35 +275,98 @@ export function isTaskLine(line: string): boolean {
 }
 
 /**
- * Drop any scheduled date the line already carries, in either notation. The
- * whitespace in front of the annotation goes with it, so nothing else on the
- * line — indentation, a due date's own spacing — is disturbed.
+ * The dates a task can carry. These are the three planning dates the Tasks
+ * plugin defines, under its own keys and emoji, so a line stamped here reads
+ * correctly there and vice versa. Its record-keeping dates — created, done,
+ * cancelled — are deliberately absent: they mark something that happened, and
+ * this prompt only ever resolves forwards.
  */
-export function withoutSchedule(line: string): string {
+export type DateField = "scheduled" | "due" | "start";
+
+export const DATE_FIELDS: DateField[] = ["scheduled", "due", "start"];
+
+export const FIELD_LABEL: Record<DateField, string> = {
+	scheduled: "Scheduled",
+	due: "Due",
+	start: "Start"
+};
+
+export const FIELD_EMOJI: Record<DateField, string> = {
+	scheduled: "⏳",
+	due: "📅",
+	start: "🛫"
+};
+
+/**
+ * Drop the date a line carries for one field, in either notation. The
+ * whitespace in front of the annotation goes with it, so nothing else on the
+ * line — indentation, a neighbouring field's own spacing — is disturbed.
+ */
+export function withoutDate(line: string, field: DateField): string {
 	return line
-		.replace(/[ \t]*\[\s*scheduled\s*::[^\]]*\]/gi, "")
-		.replace(/[ \t]*⏳\s*\d{4}-\d{2}-\d{2}/g, "")
+		.replace(new RegExp("[ \\t]*\\[\\s*" + field + "\\s*::[^\\]]*\\]", "gi"), "")
+		.replace(new RegExp("[ \\t]*" + FIELD_EMOJI[field] + "\\s*\\d{4}-\\d{2}-\\d{2}", "g"), "")
 		.trimEnd();
 }
 
-export function withSchedule(line: string, date: string, style: "dataview" | "emoji"): string {
-	const clean = withoutSchedule(line);
-	return style === "emoji" ? clean + " ⏳ " + date : clean + "  [scheduled:: " + date + "]";
+export function withDate(
+	line: string,
+	field: DateField,
+	date: string,
+	style: "dataview" | "emoji"
+): string {
+	const clean = withoutDate(line, field);
+	return style === "emoji"
+		? clean + " " + FIELD_EMOJI[field] + " " + date
+		: clean + "  [" + field + ":: " + date + "]";
+}
+
+/** The date a line already carries for one field, in either notation. */
+export function dateOn(line: string, field: DateField): string | null {
+	const found =
+		line.match(new RegExp("\\[\\s*" + field + "\\s*::\\s*(\\d{4}-\\d{2}-\\d{2})", "i")) ??
+		line.match(new RegExp(FIELD_EMOJI[field] + "\\s*(\\d{4}-\\d{2}-\\d{2})"));
+	return found ? found[1] : null;
 }
 
 /**
- * Stamp — or, with a null date, clear — the scheduled date on every checklist
- * line given. Non-task lines come back untouched, so a rough selection that
- * caught a heading or a blank line still does the right thing.
+ * A field named at the head of what someone typed — `due fri`, `start monday`.
+ * Keeps the prompt's keyboard path whole: switching field needn't mean leaving
+ * the text box for the buttons.
+ */
+const FIELD_WORDS: Record<string, DateField> = {
+	scheduled: "scheduled",
+	schedule: "scheduled",
+	sched: "scheduled",
+	due: "due",
+	start: "start",
+	starts: "start"
+};
+
+export function parseFieldPrefix(input: string): { field: DateField | null; rest: string } {
+	const match = input.match(/^[ \t]*([a-z]+)([ \t]+.*)?$/i);
+	if (!match) return { field: null, rest: input };
+
+	const field = FIELD_WORDS[match[1].toLowerCase()];
+	if (!field) return { field: null, rest: input };
+
+	return { field, rest: (match[2] ?? "").trim() };
+}
+
+/**
+ * Stamp — or, with a null date, clear — one field on every checklist line
+ * given. Non-task lines come back untouched, so a rough selection that caught a
+ * heading or a blank line still does the right thing.
  */
 export function scheduleLines(
 	lines: string[],
+	field: DateField,
 	date: string | null,
 	style: "dataview" | "emoji"
 ): string[] {
 	return lines.map((line) => {
 		if (!isTaskLine(line)) return line;
-		return date === null ? withoutSchedule(line) : withSchedule(line, date, style);
+		return date === null ? withoutDate(line, field) : withDate(line, field, date, style);
 	});
 }
 
@@ -313,6 +376,7 @@ export function scheduleLines(
  */
 export function scheduleInEditor(
 	editor: Editor,
+	field: DateField,
 	date: string | null,
 	style: "dataview" | "emoji"
 ): number {
@@ -325,7 +389,7 @@ export function scheduleInEditor(
 
 	const sorted = Array.from(lineNumbers).sort((a, b) => a - b);
 	const original = sorted.map((line) => editor.getLine(line));
-	const scheduled = scheduleLines(original, date, style);
+	const scheduled = scheduleLines(original, field, date, style);
 
 	const changes: EditorChange[] = [];
 	for (let i = 0; i < sorted.length; i++) {
@@ -353,23 +417,15 @@ export function selectionHasTask(editor: Editor): boolean {
 	return false;
 }
 
-/** The scheduled date a line already carries, in either notation. */
-export function scheduleOf(line: string): string | null {
-	const found =
-		line.match(/\[\s*scheduled\s*::\s*(\d{4}-\d{2}-\d{2})/i) ??
-		line.match(/⏳\s*(\d{4}-\d{2}-\d{2})/);
-	return found ? found[1] : null;
-}
-
 /** The date already on the first task line of the selection, if there is one. */
-export function selectionSchedule(editor: Editor): string | null {
+export function selectionDate(editor: Editor, field: DateField): string | null {
 	for (const selection of editor.listSelections()) {
 		const from = Math.min(selection.anchor.line, selection.head.line);
 		const to = Math.max(selection.anchor.line, selection.head.line);
 		for (let line = from; line <= to; line++) {
 			const text = editor.getLine(line);
 			if (!isTaskLine(text)) continue;
-			const found = scheduleOf(text);
+			const found = dateOn(text, field);
 			if (found) return found;
 		}
 	}

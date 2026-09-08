@@ -1,4 +1,4 @@
-import { readBlock, removeBlock, insertUnderHeading, moveTask, editTaskLine, markDone, withSchedule } from "../src/actions.ts";
+import { readBlock, removeBlock, insertUnderHeading, moveTask, editTaskLine, markDone, withDate } from "../src/actions.ts";
 import { parseTasks } from "../src/taskIndex.ts";
 import { TFile } from "obsidian";
 
@@ -134,13 +134,13 @@ async function main() {
 {
 	const src = "- [ ] #task schedule me";
 	const { app, read } = makeApp({ "a.md": src });
-	await editTaskLine(app, task("a.md", src), (l) => withSchedule(l, "2026-01-31", "dataview"));
+	await editTaskLine(app, task("a.md", src), (l) => withDate(l, "scheduled", "2026-01-31", "dataview"));
 	eq("dataview schedule", read("a.md"), "- [ ] #task schedule me  [scheduled:: 2026-01-31]");
 }
 {
 	const src = "- [ ] #task schedule me ⏳ 2025-01-01";
 	const { app, read } = makeApp({ "a.md": src });
-	await editTaskLine(app, task("a.md", src), (l) => withSchedule(l, "2026-01-31", "emoji"));
+	await editTaskLine(app, task("a.md", src), (l) => withDate(l, "scheduled", "2026-01-31", "emoji"));
 	eq("emoji schedule replaces the old date", read("a.md"), "- [ ] #task schedule me ⏳ 2026-01-31");
 }
 {

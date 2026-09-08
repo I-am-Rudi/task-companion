@@ -1,5 +1,5 @@
 import { Editor, MarkdownPostProcessorContext, Notice, Plugin, TAbstractFile, TFile } from "obsidian";
-import { scheduleInEditor, selectionHasTask, selectionSchedule } from "./actions";
+import { dateOn, scheduleInEditor, selectionDate, selectionHasTask } from "./actions";
 import { inlineScheduleExtension, inlineSchedulePostProcessor } from "./inline";
 import { ScheduleModal } from "./schedule";
 import { DEFAULT_SETTINGS, RolloverSettings, RolloverSettingTab } from "./settings";
@@ -69,12 +69,11 @@ export default class TaskRolloverPlugin extends Plugin {
 					new Notice("No task on this line.");
 					return;
 				}
-				const existing = selectionSchedule(editor);
 				new ScheduleModal(this.app, {
-					initial: existing,
-					allowClear: existing !== null,
-					onPick: (date) => {
-						const changed = scheduleInEditor(editor, date, this.settings.scheduleStyle);
+					current: (field) => selectionDate(editor, field),
+					onPick: (date, field) => {
+						const style = this.settings.scheduleStyle;
+						const changed = scheduleInEditor(editor, field, date, style);
 						if (changed === 0) new Notice("No task on this line.");
 					}
 				}).open();

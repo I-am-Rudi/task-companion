@@ -1,12 +1,14 @@
 import { MarkdownRenderChild, Notice, moment, setIcon, setTooltip } from "obsidian";
 import type TaskRolloverPlugin from "./main";
 import {
+	dateOn,
 	displayText,
+	FIELD_LABEL,
 	editTaskLine,
 	markDone,
 	moveTask,
-	withoutSchedule,
-	withSchedule
+	withDate,
+	withoutDate
 } from "./actions";
 import { ScheduleModal } from "./schedule";
 import { inAnyFolder, noteAt, normalizeFolder } from "./paths";
@@ -360,33 +362,33 @@ export class RolloverBlock extends MarkdownRenderChild {
 	 */
 	private addScheduleControl(actions: HTMLElement, item: HTMLElement, task: TaskItem) {
 		const existing = task.scheduled;
-
 		const tooltip = existing ? `Scheduled ${existing}` : "Schedule";
 
 		this.addAction(actions, "calendar", "⏳", tooltip, () => {
 			new ScheduleModal(this.plugin.app, {
 				subject: displayText(task, this.settings.taskTag),
-				initial: existing,
-				allowClear: existing !== null,
-				onPick: async (date) => {
+				current: (field) => dateOn(task.raw, field),
+				onPick: async (date, field) => {
 					const ok = await editTaskLine(this.plugin.app, task, (line) =>
 						date === null
-							? withoutSchedule(line)
-							: withSchedule(line, date, this.settings.scheduleStyle)
+							? withoutDate(line, field)
+							: withDate(line, field, date, this.settings.scheduleStyle)
 					);
 					if (!ok) {
 						new Notice("Could not find that task in its note.");
 						return;
 					}
+					const label = FIELD_LABEL[field].toLowerCase();
 					if (date === null) {
-						new Notice("Date cleared.");
+						new Notice(`Cleared the ${label} date.`);
 						return;
 					}
-					new Notice(`Scheduled for ${date}.`);
-					// In unscheduled mode the task has just left the query, so
-					// grey it out rather than leave it looking actionable until
-					// the index catches up.
-					if (this.options.mode === "unscheduled") this.retire(item);
+					new Notice(`${FIELD_LABEL[field]}: ${date}.`);
+					// The task has just left this block's query, so grey it out
+					// rather than leave it looking actionable until the index
+					// catches up. A start date doesn't do that — only a
+					// scheduled or due date makes a task no longer unscheduled.
+					if (field !== "start") this.retire(item);
 				}
 			}).open();
 		});
