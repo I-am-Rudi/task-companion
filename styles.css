@@ -59,12 +59,29 @@
 	opacity: 1;
 }
 
-body.is-mobile .trc-actions {
+body.is-mobile .trc-actions,
+.trc-actions.is-emoji {
 	opacity: 1;
 }
 
 .trc-action {
 	flex-shrink: 0;
+}
+
+/* Emoji carry their own colour and weight, so the button is only a hit area
+   around them — no background, no border, no icon sizing. */
+.trc-action-emoji {
+	background: transparent;
+	box-shadow: none;
+	border: none;
+	padding: 0 var(--size-2-1);
+	font-size: var(--font-ui-small);
+	line-height: 1;
+	cursor: pointer;
+}
+
+.trc-action-emoji:hover {
+	background: var(--background-modifier-hover);
 }
 
 .trc-check {

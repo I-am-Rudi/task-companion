@@ -143,13 +143,22 @@ automatically.
 
 ## Actions
 
-Hover a row to reveal its actions:
+Each row carries the actions that make sense for it:
 
 - **checkbox** — writes `[x]` to the line in its source note
 - **open** — open the source note
 - **move here** — move the task and its subtasks under the target heading in the current note
 - **put on hold** — move the task and its subtasks to the collection note (`periodic` mode)
 - **schedule** — opens the date prompt above (`unscheduled` mode)
+
+Two looks for those buttons, set by **Row actions**:
+
+- **Minimal** (default) — icon buttons, appearing only when you hover the row,
+  so the list stays quiet until you reach for it.
+- **Emoji** — 🔗 ➡️ ⏸️ ⏳, always visible. These are the emoji the
+  [Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks) plugin uses
+  for the same ideas, so a vault built around it doesn't end up reading two
+  visual languages at once.
 
 Subtasks render nested and always travel with their parent. A move inserts into
 the destination before cutting from the source, so an interrupted move leaves a
@@ -158,7 +167,7 @@ duplicate rather than losing the task.
 ## Settings
 
 Task tag, whether the tag must start the line, target heading, collection note,
-excluded folders, and schedule format. Under **Editing**, the two tagging
+excluded folders, schedule format and row action style. Under **Editing**, the two tagging
 behaviours above and whether tagged tasks show the calendar icon on hover. Under **Periodic notes**, per-granularity folder and format
 fallbacks, used only where Periodic Notes isn't supplying them.
 

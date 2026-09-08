@@ -268,7 +268,11 @@ export class RolloverBlock extends MarkdownRenderChild {
 			}
 
 			const actions = row.createDiv({ cls: "trc-actions" });
-			this.addAction(actions, "external-link", "Open source note", () => {
+			// Emoji rows are always visible, so they read as part of the task
+			// line the way the Tasks plugin's do, rather than as a hover menu.
+			actions.toggleClass("is-emoji", this.settings.actionStyle === "emoji");
+
+			this.addAction(actions, "external-link", "🔗", "Open source note", () => {
 				this.plugin.app.workspace.openLinkText(task.path, "", false);
 			});
 
@@ -282,15 +286,25 @@ export class RolloverBlock extends MarkdownRenderChild {
 		}
 	}
 
+	/**
+	 * One button, drawn either way. The emoji are the ones the Tasks plugin
+	 * uses for the same ideas, so a vault that leans on it doesn't end up with
+	 * two visual languages side by side.
+	 */
 	private addAction(
 		parent: HTMLElement,
 		icon: string,
+		emoji: string,
 		tooltip: string,
 		onClick: () => void | Promise<void>
 	): HTMLButtonElement {
-		const button = parent.createEl("button", { cls: "clickable-icon trc-action" });
+		const asEmoji = this.settings.actionStyle === "emoji";
+		const button = parent.createEl("button", {
+			cls: asEmoji ? "trc-action trc-action-emoji" : "clickable-icon trc-action"
+		});
 		button.type = "button";
-		setIcon(button, icon);
+		if (asEmoji) button.setText(emoji);
+		else setIcon(button, icon);
 		setTooltip(button, tooltip);
 		button.setAttr("aria-label", tooltip);
 		button.addEventListener("click", async (event) => {
@@ -311,7 +325,7 @@ export class RolloverBlock extends MarkdownRenderChild {
 	private addMoveControls(actions: HTMLElement, item: HTMLElement, task: TaskItem) {
 		const app = this.plugin.app;
 
-		this.addAction(actions, "arrow-right", "Move here, with subtasks", async () => {
+		this.addAction(actions, "arrow-right", "➡️", "Move here, with subtasks", async () => {
 			const ok = await moveTask(app, task, this.sourcePath, this.settings.tasksHeading);
 			if (!ok) {
 				new Notice("Could not move that task.");
@@ -322,7 +336,7 @@ export class RolloverBlock extends MarkdownRenderChild {
 
 		if (this.options.mode === "collection") return;
 
-		this.addAction(actions, "pause", "Put on hold, in the collection note", async () => {
+		this.addAction(actions, "pause", "⏸️", "Put on hold, in the collection note", async () => {
 			const target = this.collectionPath();
 			if (!target) {
 				new Notice(`Collection note not found: ${this.settings.collectionNote}`);
@@ -347,7 +361,9 @@ export class RolloverBlock extends MarkdownRenderChild {
 	private addScheduleControl(actions: HTMLElement, item: HTMLElement, task: TaskItem) {
 		const existing = task.scheduled;
 
-		this.addAction(actions, "calendar", existing ? `Scheduled ${existing}` : "Schedule", () => {
+		const tooltip = existing ? `Scheduled ${existing}` : "Schedule";
+
+		this.addAction(actions, "calendar", "⏳", tooltip, () => {
 			new ScheduleModal(this.plugin.app, {
 				subject: displayText(task, this.settings.taskTag),
 				initial: existing,

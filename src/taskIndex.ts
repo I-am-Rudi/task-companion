@@ -107,6 +107,15 @@ export class TaskIndex extends Component {
 		}, NOTIFY_DELAY_MS);
 	}
 
+	/**
+	 * Ask every open block to render again. The tasks haven't changed — a
+	 * setting that affects how they're drawn has — but the blocks already
+	 * listen here, so this is the bus rather than a second one.
+	 */
+	refresh() {
+		this.notify();
+	}
+
 	ready(): Promise<void> {
 		if (!this.buildPromise) this.buildPromise = this.build();
 		return this.buildPromise;

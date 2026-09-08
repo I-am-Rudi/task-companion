@@ -15,6 +15,8 @@ export interface RolloverSettings {
 	collectionNote: string;
 	excludedFolders: string[];
 	scheduleStyle: "dataview" | "emoji";
+	/** How the action buttons on a block's rows are drawn. */
+	actionStyle: "minimal" | "emoji";
 	/** Whether tagging a plain bullet or plain line turns it into a task. */
 	promoteOnToggle: boolean;
 	/** Whether Enter on a tagged task carries the tag onto the next line. */
@@ -32,6 +34,7 @@ export const DEFAULT_SETTINGS: RolloverSettings = {
 	collectionNote: "Unscheduled & Long-Term Tasks",
 	excludedFolders: ["Meta/Templates"],
 	scheduleStyle: "dataview",
+	actionStyle: "minimal",
 	promoteOnToggle: true,
 	continueTagOnEnter: true,
 	showScheduleIcon: true,
@@ -129,6 +132,23 @@ export class RolloverSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						settings.scheduleStyle = value === "emoji" ? "emoji" : "dataview";
 						await save();
+					})
+			);
+
+		new Setting(containerEl)
+			.setName("Row actions")
+			.setDesc(
+				"How each row's buttons are drawn. Minimal: icon buttons that appear when you hover the row. Emoji: always visible, in the style the Tasks plugin uses."
+			)
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption("minimal", "Minimal — icons on hover")
+					.addOption("emoji", "Emoji — ➡️ ⏸️ ⏳, always visible")
+					.setValue(settings.actionStyle)
+					.onChange(async (value) => {
+						settings.actionStyle = value === "emoji" ? "emoji" : "minimal";
+						await save();
+						this.plugin.index.refresh();
 					})
 			);
 
