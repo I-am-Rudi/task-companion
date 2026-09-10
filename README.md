@@ -1,4 +1,4 @@
-# Task Rollover Companion
+# Task Companion
 
 A Plugin providing some convenience features for interacting with the Task
 plugin. I have been always uncomfortable with auto rollover, as it is easy to
