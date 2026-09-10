@@ -1,0 +1,229 @@
+{
+  "main": {
+    "id": "119c45a72b6284b1",
+    "type": "split",
+    "children": [
+      {
+        "id": "2e75c7fd3f74fa41",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1f4da178f7774539",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Periodic/Daily/2026-09-09.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "2026-09-09"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "fc045d4b577d0dc1",
+    "type": "split",
+    "children": [
+      {
+        "id": "df88725b700d7395",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0b04326fa9046650",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "9f9cde5fe9f23856",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "63855d89fabaf293",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "114da4513c7faf9b",
+    "type": "split",
+    "children": [
+      {
+        "id": "069b9ad61687218b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "142c838448843d71",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Welcome.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for Welcome"
+            }
+          },
+          {
+            "id": "fcab2954ef9cbf65",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Welcome.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from Welcome"
+            }
+          },
+          {
+            "id": "9f65bfcf29c694c5",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "a6696233c11aadad",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "9a6135eb3d2f373a",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Welcome.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of Welcome"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "obsidian42-brat:BRAT": false,
+      "periodic-notes:Open today": false
+    }
+  },
+  "active": "1f4da178f7774539",
+  "lastOpenFiles": [
+    "Periodic/Daily/2026-09-10.md",
+    "Unscheduled & Long-Term Tasks.md",
+    "Periodic/Weekly/2026-W36.md",
+    "Periodic/Quarterly/2026-Q3.md",
+    "Periodic/Daily/2026-09-11.md",
+    "Periodic/Daily/2026-09-08.md",
+    "Periodic/Daily/2026-09-04.md",
+    "Periodic/Daily/2026-09-02.md",
+    "Workouts/workout-performance.csv",
+    "Workouts",
+    "Workout Library/Plans",
+    "Workout Library/Routines",
+    "Workout Library/Exercises",
+    "Workout Library",
+    "Welcome.md",
+    "Periodic/Daily/2026-09-03.md",
+    "Untitled.md",
+    "Projects/Website relaunch.md",
+    "meta/templates/quarterly-template.md",
+    "meta/templates/zotero-literature-template.md",
+    "meta/templates/wikipedia-atomic.md",
+    "meta/templates/structure-note-template.md",
+    "meta/templates/meeting note template.md",
+    "meta/templates/project-template.md",
+    "meta/templates/daily-template.md",
+    "meta/templates/literature-template.md",
+    "meta/templates/highlight-template.md",
+    "meta/templates/fleeting note template.md",
+    "meta/templates/direct atomic note template.md",
+    "meta/templates/atomic note template.md",
+    "meta/templates/assimilation-writing-template.md",
+    "Periodic/Daily/2026-09-07.md",
+    "Projects",
+    "Periodic/Yearly",
+    "Periodic/Quarterly",
+    "Periodic/Weekly"
+  ]
+}

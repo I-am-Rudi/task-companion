@@ -1,5 +1,9 @@
 # Task Companion
 
+<p align="center">
+  <img src="./assets/overview.gif" width="400" alt="A first look at Workout Journal">
+</p>
+
 A Plugin providing some convenience features for interacting with the Task
 plugin. I have been always uncomfortable with auto rollover, as it is easy to
 loose track and be unintentional about what is being rolled over. The other

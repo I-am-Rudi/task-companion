@@ -1,0 +1,297 @@
+/*
+ * Task Rollover Companion
+ *
+ * Everything here leans on Obsidian's CSS variables so themes and snippets can
+ * restyle the plugin. No colours, sizes or spacings are invented outright.
+ */
+
+.trc-block {
+	margin: 0;
+}
+
+.trc-title {
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+	margin-bottom: var(--size-2-2);
+}
+
+.trc-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin: 0;
+}
+
+.trc-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.trc-sublist {
+	padding-left: var(--size-4-5);
+}
+
+.trc-item {
+	margin: 0;
+}
+
+.trc-row {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-2-2);
+	padding: var(--size-2-1) 0;
+	min-height: var(--size-4-6);
+}
+
+/* The action buttons only appear once the row is worth acting on, so the list
+   stays quiet until the pointer is over it. Always visible on touch. */
+.trc-actions {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-1);
+	margin-left: auto;
+	opacity: 0;
+	transition: opacity 100ms ease-in-out;
+}
+
+.trc-row:hover .trc-actions,
+.trc-row:focus-within .trc-actions {
+	opacity: 1;
+}
+
+body.is-mobile .trc-actions,
+.trc-actions.is-emoji {
+	opacity: 1;
+}
+
+.trc-action {
+	flex-shrink: 0;
+}
+
+/* Emoji carry their own colour and weight, so the button is only a hit area
+   around them — no background, no border, no icon sizing. */
+.trc-action-emoji {
+	background: transparent;
+	box-shadow: none;
+	border: none;
+	padding: 0 var(--size-2-1);
+	font-size: var(--font-ui-small);
+	line-height: 1;
+	cursor: pointer;
+}
+
+.trc-action-emoji:hover {
+	background: var(--background-modifier-hover);
+}
+
+.trc-check {
+	flex-shrink: 0;
+	cursor: pointer;
+	margin: 0;
+}
+
+.trc-text {
+	color: var(--text-normal);
+	overflow-wrap: anywhere;
+}
+
+.trc-text.is-done {
+	text-decoration: line-through;
+	color: var(--text-muted);
+}
+
+.trc-source {
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+.trc-hidden {
+	display: none;
+}
+
+.trc-item.is-retired > .trc-row,
+.trc-item.is-retired .trc-sublist {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+/* Inside a callout or blockquote the block sits directly under the callout's
+   own title, which reads as one crowded heading on two lines. Everywhere else
+   Obsidian already spaces block-level children, so this is scoped. */
+.callout-content .trc-block,
+blockquote .trc-block {
+	margin-top: var(--size-4-2);
+}
+
+/*
+ * The schedule icon beside a tagged task in a note — the same button in live
+ * preview, source mode and reading view.
+ *
+ * Hidden rather than transparent, so it takes no width until it is wanted and
+ * a line's wrapping doesn't depend on it. The hover target is the line, not the
+ * icon, so there is nothing to aim at first.
+ */
+.trc-inline-schedule {
+	display: none;
+	vertical-align: middle;
+	margin-left: var(--size-2-2);
+	padding: 0 var(--size-2-1);
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-faint);
+	cursor: pointer;
+	height: var(--size-4-4);
+	line-height: 1;
+}
+
+.trc-inline-schedule .svg-icon {
+	width: var(--icon-s);
+	height: var(--icon-s);
+	vertical-align: middle;
+}
+
+.trc-inline-schedule:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.cm-line:hover .trc-inline-schedule,
+li.task-list-item:hover > .trc-inline-schedule {
+	display: inline-block;
+}
+
+/* No hover on touch, so the icon has to stand its ground. */
+body.is-mobile .trc-inline-schedule {
+	display: inline-block;
+}
+
+/*
+ * The schedule prompt.
+ *
+ * Typing is the fast path — the field takes focus on open — and the month below
+ * is there for the times a date is easier recognised than named.
+ */
+.trc-schedule-modal {
+	max-width: 20rem;
+}
+
+.trc-schedule-subject {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin-bottom: var(--size-4-2);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Which of the three dates is being set. Scheduling leads because it is what
+   the blocks read, but due and start are one click — or one typed word — away. */
+.trc-schedule-fields {
+	display: flex;
+	gap: var(--size-2-1);
+	margin-bottom: var(--size-2-3);
+}
+
+.trc-schedule-field {
+	flex: 1;
+	background: var(--background-modifier-form-field);
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-2-2) var(--size-2-1);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.trc-schedule-field:hover {
+	color: var(--text-normal);
+}
+
+.trc-schedule-field.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.trc-schedule-input {
+	width: 100%;
+}
+
+.trc-schedule-hint {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin: var(--size-2-2) 0 var(--size-4-3);
+	min-height: var(--size-4-4);
+}
+
+.trc-schedule-hint.is-error {
+	color: var(--text-error);
+}
+
+.trc-schedule-header {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	margin-bottom: var(--size-2-2);
+}
+
+.trc-schedule-month {
+	flex: 1;
+	text-align: center;
+	font-weight: var(--font-semibold);
+	color: var(--text-normal);
+}
+
+.trc-schedule-weekdays,
+.trc-schedule-grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: var(--size-2-1);
+}
+
+.trc-schedule-weekday {
+	text-align: center;
+	color: var(--text-faint);
+	font-size: var(--font-ui-smaller);
+	padding-bottom: var(--size-2-1);
+}
+
+.trc-schedule-day {
+	background: transparent;
+	box-shadow: none;
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	font-size: var(--font-ui-small);
+	padding: var(--size-2-2) 0;
+	text-align: center;
+	cursor: pointer;
+}
+
+.trc-schedule-day:hover {
+	background: var(--background-modifier-hover);
+}
+
+.trc-schedule-day.is-outside {
+	color: var(--text-faint);
+}
+
+.trc-schedule-day.is-today {
+	font-weight: var(--font-bold);
+	color: var(--text-accent);
+}
+
+.trc-schedule-day.is-selected {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.trc-schedule-footer {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	margin-top: var(--size-4-4);
+}
+
+.trc-schedule-clear {
+	margin-right: auto;
+}
