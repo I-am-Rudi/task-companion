@@ -1,4 +1,4 @@
-import { MarkdownRenderChild, Notice, moment, setIcon, setTooltip } from "obsidian";
+import { MarkdownRenderChild, Notice, setIcon, setTooltip } from "obsidian";
 import type TaskRolloverPlugin from "./main";
 import {
 	dateOn,
@@ -10,6 +10,7 @@ import {
 	withDate,
 	withoutDate
 } from "./actions";
+import { moment } from "./moment";
 import { ScheduleModal } from "./schedule";
 import { inAnyFolder, noteAt, normalizeFolder } from "./paths";
 import {
@@ -108,11 +109,11 @@ export class RolloverBlock extends MarkdownRenderChild {
 		this.sourcePath = sourcePath;
 	}
 
-	async onload() {
+	onload() {
 		this.unsubscribe = this.plugin.index.onChange(() => this.render());
 		this.render();
-		await this.plugin.index.ready();
-		this.render();
+		// The index may still be building; draw again once it's complete.
+		void this.plugin.index.ready().then(() => this.render());
 	}
 
 	onunload() {
@@ -249,17 +250,9 @@ export class RolloverBlock extends MarkdownRenderChild {
 		const label = row.createSpan({ cls: "trc-text", text: displayText(task, this.settings.taskTag) });
 		label.toggleClass("is-done", done);
 
-		checkbox.addEventListener("click", async (event) => {
+		checkbox.addEventListener("click", (event) => {
 			event.stopPropagation();
-			checkbox.disabled = true;
-			const ok = await editTaskLine(this.plugin.app, task, markDone);
-			if (!ok) {
-				checkbox.checked = false;
-				checkbox.disabled = false;
-				new Notice("Could not find that task in its note.");
-				return;
-			}
-			label.addClass("is-done");
+			void this.markTaskDone(task, checkbox, label);
 		});
 
 		if (isRoot) {
@@ -275,7 +268,7 @@ export class RolloverBlock extends MarkdownRenderChild {
 			actions.toggleClass("is-emoji", this.settings.actionStyle === "emoji");
 
 			this.addAction(actions, "external-link", "🔗", "Open source note", () => {
-				this.plugin.app.workspace.openLinkText(task.path, "", false);
+				void this.plugin.app.workspace.openLinkText(task.path, "", false);
 			});
 
 			if (this.options.mode === "unscheduled") this.addScheduleControl(actions, item, task);
@@ -286,6 +279,18 @@ export class RolloverBlock extends MarkdownRenderChild {
 			const sublist = item.createEl("ul", { cls: "trc-list trc-sublist" });
 			for (const child of task.children) this.renderTask(sublist, child, false);
 		}
+	}
+
+	private async markTaskDone(task: TaskItem, checkbox: HTMLInputElement, label: HTMLElement) {
+		checkbox.disabled = true;
+		const ok = await editTaskLine(this.plugin.app, task, markDone);
+		if (!ok) {
+			checkbox.checked = false;
+			checkbox.disabled = false;
+			new Notice("Could not find that task in its note.");
+			return;
+		}
+		label.addClass("is-done");
 	}
 
 	/**
@@ -309,9 +314,9 @@ export class RolloverBlock extends MarkdownRenderChild {
 		else setIcon(button, icon);
 		setTooltip(button, tooltip);
 		button.setAttr("aria-label", tooltip);
-		button.addEventListener("click", async (event) => {
+		button.addEventListener("click", (event) => {
 			event.stopPropagation();
-			await onClick();
+			void onClick();
 		});
 		return button;
 	}

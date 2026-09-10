@@ -1,6 +1,4 @@
-import { moment } from "obsidian";
-
-export type Moment = ReturnType<typeof moment>;
+import { moment, type Moment } from "./moment";
 
 /** The one date format the plugin ever writes into a note. */
 export const ISO = "YYYY-MM-DD";

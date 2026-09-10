@@ -7,6 +7,9 @@ on:
 
 permissions:
   contents: write
+  # Both for the build-provenance attestation.
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -26,13 +29,34 @@ jobs:
       - name: Build plugin
         run: npm ci && npm run build
 
-      - name: Commit and push version bump
+      # The community review compares the released manifest with the manifest
+      # at the tagged commit. The tag was pushed before the bump, so it points at
+      # a commit still carrying the previous version: commit the bump, then move
+      # the tag onto that commit so the release is cut from it. Pushes made with
+      # GITHUB_TOKEN don't start workflow runs, so moving the tag can't loop.
+      - name: Commit the bump and move the tag onto it
+        env:
+          VERSION: ${{ steps.get_version.outputs.VERSION }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add manifest.json versions.json package.json
-          git diff --staged --quiet || git commit -m "chore: bump version to ${{ steps.get_version.outputs.VERSION }}"
+          if git diff --staged --quiet; then
+            echo "The tagged commit already carries $VERSION; the tag stays where it is."
+            exit 0
+          fi
+          git commit -m "chore: bump version to $VERSION"
           git push origin HEAD:refs/heads/${{ github.event.repository.default_branch }}
+          git tag -f "$GITHUB_REF_NAME"
+          git push -f origin "refs/tags/$GITHUB_REF_NAME"
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
 
       - name: Create Release
         uses: softprops/action-gh-release@v1

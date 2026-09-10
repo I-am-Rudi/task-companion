@@ -1,11 +1,10 @@
-import { App, moment, Plugin } from "obsidian";
+import { App, Plugin } from "obsidian";
+import { moment, type Moment } from "./moment";
 import { inFolder, normalizeFolder } from "./paths";
 
 export type Granularity = "day" | "week" | "month" | "quarter" | "year";
 
 export const GRANULARITIES: Granularity[] = ["day", "week", "month", "quarter", "year"];
-
-export type Moment = ReturnType<typeof moment>;
 
 /** Key used by the Periodic Notes plugin for each granularity. */
 const PN_KEY: Record<Granularity, string> = {

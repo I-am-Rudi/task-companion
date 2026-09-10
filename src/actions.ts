@@ -105,7 +105,9 @@ export function stripAnnotations(text: string): string {
 	return text
 		.replace(/\[\w+::[^\]]*\]/g, "")
 		.replace(/\(\w+::[^)]*\)/g, "")
-		.replace(/[⏳📅➕✅❌🛫🔁]\s*\d{4}-\d{2}-\d{2}/g, "")
+		// `u`, because 📅 🛫 🔁 are two code units each: without it the class
+		// matches their halves separately and can strip one, leaving the other.
+		.replace(/[⏳📅➕✅❌🛫🔁]\s*\d{4}-\d{2}-\d{2}/gu, "")
 		.replace(/[ \t]{2,}/g, " ")
 		.trimEnd();
 }

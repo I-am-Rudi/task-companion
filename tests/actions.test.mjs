@@ -1,4 +1,4 @@
-import { readBlock, removeBlock, insertUnderHeading, moveTask, editTaskLine, markDone, withDate } from "../src/actions.ts";
+import { readBlock, removeBlock, insertUnderHeading, moveTask, editTaskLine, markDone, withDate, stripAnnotations } from "../src/actions.ts";
 import { parseTasks } from "../src/taskIndex.ts";
 import { TFile } from "obsidian";
 
@@ -147,6 +147,16 @@ async function main() {
 	const src = "- [ ] #task gone";
 	const { app } = makeApp({ "a.md": "unrelated content" });
 	eq("missing task reports failure", await editTaskLine(app, task("a.md", src), markDone), false);
+}
+
+// --- emoji dates are stripped whole --------------------------------------
+// 📅 🛫 🔁 are two UTF-16 code units each; stripping must take both halves.
+{
+	const lone = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+	for (const emoji of ["📅", "🛫", "🔁", "⏳", "✅"]) {
+		const stripped = stripAnnotations(`write it up ${emoji} 2026-01-01`);
+		eq(`${emoji} date strips cleanly`, [stripped, lone.test(stripped)], ["write it up", false]);
+	}
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

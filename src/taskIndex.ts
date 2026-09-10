@@ -136,7 +136,7 @@ export class TaskIndex extends Component {
 				this.byPath.set(file.path, parseTasks(file.path, content));
 			} catch (error) {
 				// One unreadable file should not abandon the rest of the index.
-				console.error(`Task Rollover Companion: could not index ${file.path}`, error);
+				console.error(`Tasks Companion: could not index ${file.path}`, error);
 			}
 		}
 		this.notify();
@@ -159,7 +159,7 @@ export class TaskIndex extends Component {
 		try {
 			this.updateFile(file, await this.app.vault.cachedRead(file));
 		} catch (error) {
-			console.error(`Task Rollover Companion: could not read ${path}`, error);
+			console.error(`Tasks Companion: could not read ${path}`, error);
 		}
 	}
 
