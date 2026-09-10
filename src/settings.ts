@@ -1,9 +1,10 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
 import type TaskRolloverPlugin from "./main";
 import {
 	DEFAULT_FORMAT,
 	GRANULARITIES,
 	GRANULARITY_LABEL,
+	Granularity,
 	PeriodicFallbacks,
 	periodicNotesAvailable
 } from "./periodic";
@@ -47,6 +48,19 @@ export const DEFAULT_SETTINGS: RolloverSettings = {
 	}
 };
 
+/** The settings the tab edits through controls. */
+type ControlKey =
+	| "taskTag"
+	| "requireTagAtStart"
+	| "tasksHeading"
+	| "collectionNote"
+	| "excludedFolders"
+	| "scheduleStyle"
+	| "actionStyle"
+	| "promoteOnToggle"
+	| "continueTagOnEnter"
+	| "showScheduleIcon";
+
 export class RolloverSettingTab extends PluginSettingTab {
 	private plugin: TaskRolloverPlugin;
 
@@ -55,175 +69,197 @@ export class RolloverSettingTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
+	/**
+	 * Declarative, so Obsidian draws the tab itself and indexes every entry for
+	 * its settings search. Values pass through getControlValue and
+	 * setControlValue below, which is where trimming, defaults and side effects
+	 * live.
+	 */
+	getSettingDefinitions(): SettingDefinitionItem<ControlKey>[] {
+		const app = this.app;
 
+		return [
+			{
+				name: "Task tag",
+				desc: "Only checklist items carrying this tag are rolled over. The same tag is used by the tagging command and by tag continuation.",
+				control: { type: "text", key: "taskTag" }
+			},
+			{
+				name: "Tag must start the line",
+				desc: "On: only '- [ ] #task …' matches. Off: the tag may appear anywhere in the line.",
+				control: { type: "toggle", key: "requireTagAtStart" }
+			},
+			{
+				name: "Target heading",
+				desc: "Moved tasks are inserted directly beneath this heading.",
+				control: { type: "text", key: "tasksHeading" }
+			},
+			{
+				name: "Collection note",
+				desc: "Where 'put on hold' sends tasks. Vault path, with or without the .md extension.",
+				control: { type: "text", key: "collectionNote" }
+			},
+			{
+				name: "Excluded folders",
+				desc: "Comma-separated. Skipped in vault-wide searches. Periodic note folders are excluded automatically.",
+				control: { type: "textarea", key: "excludedFolders" }
+			},
+			{
+				name: "Schedule format",
+				desc: "How the date picker writes a scheduled date.",
+				control: {
+					type: "dropdown",
+					key: "scheduleStyle",
+					options: {
+						dataview: "Dataview — [scheduled:: 2026-01-31]",
+						emoji: "Tasks — ⏳ 2026-01-31"
+					}
+				}
+			},
+			{
+				name: "Row actions",
+				desc: "How each row's buttons are drawn. Minimal: icon buttons that appear when you hover the row. Emoji: always visible, in the style the Tasks plugin uses.",
+				control: {
+					type: "dropdown",
+					key: "actionStyle",
+					options: {
+						minimal: "Minimal — icons on hover",
+						emoji: "Emoji — ➡️ ⏸️ ⏳, always visible"
+					}
+				}
+			},
+			{
+				type: "group",
+				heading: "Editing",
+				items: [
+					{
+						name: "Tagging also creates checkboxes",
+						desc: "The tagging command turns plain bullets and plain lines into tasks. Off: only existing checklist items are tagged.",
+						control: { type: "toggle", key: "promoteOnToggle" }
+					},
+					{
+						name: "Carry the tag onto the next line",
+						desc: "Pressing enter on a tagged task starts the next item already tagged. Enter on an empty item still ends the list.",
+						control: { type: "toggle", key: "continueTagOnEnter" }
+					},
+					{
+						name: "Calendar icon on tagged tasks",
+						desc: "Hovering a tagged task anywhere in a note reveals a button that opens the date picker. The command works either way.",
+						control: { type: "toggle", key: "showScheduleIcon" }
+					}
+				]
+			},
+			{
+				type: "group",
+				heading: "Periodic notes",
+				items: [
+					// A group carries no description, so what used to be the
+					// heading's note is a row of its own. `visible` is evaluated
+					// on every render, so it follows the plugin being installed
+					// or removed while the tab is open.
+					{
+						name: "Periodic Notes is installed",
+						desc: "Its folders and formats are used automatically; the values below apply only to granularities it doesn't define.",
+						visible: () => periodicNotesAvailable(app)
+					},
+					{
+						name: "Periodic Notes is not installed",
+						desc: "The values below are used instead.",
+						visible: () => !periodicNotesAvailable(app)
+					},
+					...GRANULARITIES.map((granularity) => ({
+						name: GRANULARITY_LABEL[granularity],
+						aliases: ["folder", "format", "periodic notes"],
+						render: (setting: Setting) => this.renderPeriodicRow(setting, granularity)
+					}))
+				]
+			}
+		];
+	}
+
+	/**
+	 * Folder and format side by side in one row. A control definition holds a
+	 * single value, so this row is drawn by hand; its name still feeds search.
+	 */
+	private renderPeriodicRow(setting: Setting, granularity: Granularity) {
+		const config = this.plugin.settings.fallbackPeriodic[granularity];
+		setting
+			.addText((text) =>
+				text
+					.setPlaceholder("Folder")
+					.setValue(config.folder)
+					.onChange(async (value) => {
+						config.folder = value.trim();
+						await this.plugin.saveSettings();
+					})
+			)
+			.addText((text) =>
+				text
+					.setPlaceholder("Format")
+					.setValue(config.format)
+					.onChange(async (value) => {
+						config.format = value.trim() || DEFAULT_FORMAT[granularity];
+						await this.plugin.saveSettings();
+					})
+			);
+	}
+
+	getControlValue(key: string): unknown {
 		const settings = this.plugin.settings;
-		const save = () => this.plugin.saveSettings();
+		// Stored as a list, edited as one comma-separated line.
+		if (key === "excludedFolders") return settings.excludedFolders.join(", ");
+		return settings[key as keyof RolloverSettings];
+	}
 
-		new Setting(containerEl)
-			.setName("Task tag")
-			.setDesc(
-				"Only checklist items carrying this tag are rolled over. The same tag is used by the tagging command and by tag continuation."
-			)
-			.addText((text) =>
-				text.setValue(settings.taskTag).onChange(async (value) => {
-					settings.taskTag = value.trim() || DEFAULT_SETTINGS.taskTag;
-					await save();
-				})
-			);
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		const settings = this.plugin.settings;
+		const text = typeof value === "string" ? value : "";
+		const on = value === true;
 
-		new Setting(containerEl)
-			.setName("Tag must start the line")
-			.setDesc(
-				"On: only '- [ ] #task …' matches. Off: the tag may appear anywhere in the line."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(settings.requireTagAtStart).onChange(async (value) => {
-					settings.requireTagAtStart = value;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Target heading")
-			.setDesc("Moved tasks are inserted directly beneath this heading.")
-			.addText((text) =>
-				text.setValue(settings.tasksHeading).onChange(async (value) => {
-					settings.tasksHeading = value.trim() || DEFAULT_SETTINGS.tasksHeading;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Collection note")
-			.setDesc("Where 'put on hold' sends tasks. Vault path, with or without the .md extension.")
-			.addText((text) =>
-				text.setValue(settings.collectionNote).onChange(async (value) => {
-					settings.collectionNote = value.trim();
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Excluded folders")
-			.setDesc(
-				"Comma-separated. Skipped in vault-wide searches. Periodic note folders are excluded automatically."
-			)
-			.addTextArea((text) =>
-				text.setValue(settings.excludedFolders.join(", ")).onChange(async (value) => {
-					settings.excludedFolders = value
-						.split(",")
-						.map((folder) => folder.trim())
-						.filter(Boolean);
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Schedule format")
-			.setDesc("How the date picker writes a scheduled date.")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption("dataview", "Dataview — [scheduled:: 2026-01-31]")
-					.addOption("emoji", "Tasks — ⏳ 2026-01-31")
-					.setValue(settings.scheduleStyle)
-					.onChange(async (value) => {
-						settings.scheduleStyle = value === "emoji" ? "emoji" : "dataview";
-						await save();
-					})
-			);
-
-		new Setting(containerEl)
-			.setName("Row actions")
-			.setDesc(
-				"How each row's buttons are drawn. Minimal: icon buttons that appear when you hover the row. Emoji: always visible, in the style the Tasks plugin uses."
-			)
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption("minimal", "Minimal — icons on hover")
-					.addOption("emoji", "Emoji — ➡️ ⏸️ ⏳, always visible")
-					.setValue(settings.actionStyle)
-					.onChange(async (value) => {
-						settings.actionStyle = value === "emoji" ? "emoji" : "minimal";
-						await save();
-						this.plugin.index.refresh();
-					})
-			);
-
-		new Setting(containerEl).setName("Editing").setHeading();
-
-		new Setting(containerEl)
-			.setName("Tagging also creates checkboxes")
-			.setDesc(
-				"The tagging command turns plain bullets and plain lines into tasks. Off: only existing checklist items are tagged."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(settings.promoteOnToggle).onChange(async (value) => {
-					settings.promoteOnToggle = value;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Carry the tag onto the next line")
-			.setDesc(
-				"Pressing enter on a tagged task starts the next item already tagged. Enter on an empty item still ends the list."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(settings.continueTagOnEnter).onChange(async (value) => {
-					settings.continueTagOnEnter = value;
-					await save();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Calendar icon on tagged tasks")
-			.setDesc(
-				"Hovering a tagged task anywhere in a note reveals a button that opens the date picker. The command works either way."
-			)
-			.addToggle((toggle) =>
-				toggle.setValue(settings.showScheduleIcon).onChange(async (value) => {
-					settings.showScheduleIcon = value;
-					await save();
-					// The editor extension reads this when it builds, so the
-					// open editors need telling to rebuild.
-					this.app.workspace.updateOptions();
-				})
-			);
-
-		new Setting(containerEl)
-			.setName("Periodic notes")
-			.setDesc(
-				periodicNotesAvailable(this.app)
-					? "Periodic Notes is installed. Its folders and formats are used automatically; the values below apply only to granularities it doesn't define."
-					: "Periodic Notes is not installed. The values below are used instead."
-			)
-			.setHeading();
-
-		for (const granularity of GRANULARITIES) {
-			const config = settings.fallbackPeriodic[granularity];
-			new Setting(containerEl)
-				.setName(GRANULARITY_LABEL[granularity])
-				.addText((text) =>
-					text
-						.setPlaceholder("folder")
-						.setValue(config.folder)
-						.onChange(async (value) => {
-							config.folder = value.trim();
-							await save();
-						})
-				)
-				.addText((text) =>
-					text
-						.setPlaceholder("format")
-						.setValue(config.format)
-						.onChange(async (value) => {
-							config.format = value.trim() || DEFAULT_FORMAT[granularity];
-							await save();
-						})
-				);
+		switch (key as ControlKey) {
+			case "taskTag":
+				settings.taskTag = text.trim() || DEFAULT_SETTINGS.taskTag;
+				break;
+			case "tasksHeading":
+				settings.tasksHeading = text.trim() || DEFAULT_SETTINGS.tasksHeading;
+				break;
+			case "collectionNote":
+				settings.collectionNote = text.trim();
+				break;
+			case "excludedFolders":
+				settings.excludedFolders = text
+					.split(",")
+					.map((folder) => folder.trim())
+					.filter(Boolean);
+				break;
+			case "scheduleStyle":
+				settings.scheduleStyle = text === "emoji" ? "emoji" : "dataview";
+				break;
+			case "actionStyle":
+				settings.actionStyle = text === "emoji" ? "emoji" : "minimal";
+				break;
+			case "requireTagAtStart":
+				settings.requireTagAtStart = on;
+				break;
+			case "promoteOnToggle":
+				settings.promoteOnToggle = on;
+				break;
+			case "continueTagOnEnter":
+				settings.continueTagOnEnter = on;
+				break;
+			case "showScheduleIcon":
+				settings.showScheduleIcon = on;
+				break;
+			default:
+				return;
 		}
+
+		await this.plugin.saveSettings();
+
+		// Drawing only, so nothing re-reads it on its own: redraw open blocks.
+		if (key === "actionStyle") this.plugin.index.refresh();
+		// The editor extension reads this when it builds, so the open editors
+		// need telling to rebuild.
+		if (key === "showScheduleIcon") this.app.workspace.updateOptions();
 	}
 }

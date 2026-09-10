@@ -1,8 +1,8 @@
 {
-	"id": "tasks-companion",
+	"id": "task-rollover-companion",
 	"name": "Tasks Companion",
 	"version": "0.1.1",
-	"minAppVersion": "1.5.7",
+	"minAppVersion": "1.13.0",
 	"description": "Roll unfinished tagged tasks forward, park them in a collection note, or schedule them, from a code block you place anywhere in your notes.",
 	"author": "I-am-Rudi",
 	"authorUrl": "https://github.com/I-am-Rudi",
