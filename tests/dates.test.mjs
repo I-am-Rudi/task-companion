@@ -1,6 +1,6 @@
 import moment from "moment";
 import { parseDateInput, monthMatrix, weekdayLabels } from "../src/dates.ts";
-import { scheduleLines, withSchedule, withoutSchedule, isTaskLine } from "../src/actions.ts";
+import { scheduleLines, withDate, withoutDate, isTaskLine } from "../src/actions.ts";
 
 let pass = 0, fail = 0;
 const eq = (name, got, want) => {
@@ -71,39 +71,60 @@ eq("covers the whole month", [grid[0][0].isSameOrBefore("2026-09-01"), grid[5][6
 eq("seven weekday labels", weekdayLabels().length, 7);
 
 // --- writing the date back ---------------------------------------------
-eq("dataview style", withSchedule("- [ ] #task write it up", "2026-09-12", "dataview"),
+eq("dataview style", withDate("- [ ] #task write it up", "scheduled", "2026-09-12", "dataview"),
 	"- [ ] #task write it up  [scheduled:: 2026-09-12]");
-eq("emoji style", withSchedule("- [ ] #task write it up", "2026-09-12", "emoji"),
+eq("emoji style", withDate("- [ ] #task write it up", "scheduled", "2026-09-12", "emoji"),
 	"- [ ] #task write it up ⏳ 2026-09-12");
 eq("rescheduling replaces, dataview",
-	withSchedule("- [ ] #task write it up  [scheduled:: 2026-01-01]", "2026-09-12", "dataview"),
+	withDate("- [ ] #task write it up  [scheduled:: 2026-01-01]", "scheduled", "2026-09-12", "dataview"),
 	"- [ ] #task write it up  [scheduled:: 2026-09-12]");
 eq("rescheduling replaces, emoji",
-	withSchedule("- [ ] #task write it up ⏳ 2026-01-01", "2026-09-12", "emoji"),
+	withDate("- [ ] #task write it up ⏳ 2026-01-01", "scheduled", "2026-09-12", "emoji"),
 	"- [ ] #task write it up ⏳ 2026-09-12");
 eq("switching style drops the old notation",
-	withSchedule("- [ ] #task write it up ⏳ 2026-01-01", "2026-09-12", "dataview"),
+	withDate("- [ ] #task write it up ⏳ 2026-01-01", "scheduled", "2026-09-12", "dataview"),
 	"- [ ] #task write it up  [scheduled:: 2026-09-12]");
-eq("clearing", withoutSchedule("- [ ] #task write it up  [scheduled:: 2026-01-01]"),
+eq("clearing", withoutDate("- [ ] #task write it up  [scheduled:: 2026-01-01]", "scheduled"),
 	"- [ ] #task write it up");
-eq("clearing an unscheduled line", withoutSchedule("- [ ] #task write it up"),
+eq("clearing an unscheduled line", withoutDate("- [ ] #task write it up", "scheduled"),
 	"- [ ] #task write it up");
 eq("a due date survives clearing",
-	withoutSchedule("- [ ] #task write it up  [due:: 2026-01-01]"),
+	withoutDate("- [ ] #task write it up  [due:: 2026-01-01]", "scheduled"),
 	"- [ ] #task write it up  [due:: 2026-01-01]");
 eq("indentation and other annotations survive rescheduling",
-	withSchedule("  * [/] #task sub  [due:: 2026-01-01]  [scheduled:: 2026-01-01]", "2026-09-12", "dataview"),
+	withDate("  * [/] #task sub  [due:: 2026-01-01]  [scheduled:: 2026-01-01]", "scheduled", "2026-09-12", "dataview"),
 	"  * [/] #task sub  [due:: 2026-01-01]  [scheduled:: 2026-09-12]");
+
+// --- the other two date fields -----------------------------------------
+eq("a due date, dataview", withDate("- [ ] #task a", "due", "2026-09-12", "dataview"),
+	"- [ ] #task a  [due:: 2026-09-12]");
+eq("a due date, emoji", withDate("- [ ] #task a", "due", "2026-09-12", "emoji"),
+	"- [ ] #task a 📅 2026-09-12");
+eq("a start date, emoji", withDate("- [ ] #task a", "start", "2026-09-12", "emoji"),
+	"- [ ] #task a 🛫 2026-09-12");
+eq("setting one field leaves the others alone",
+	withDate("- [ ] #task a ⏳ 2026-01-01 📅 2026-02-02", "due", "2026-09-12", "emoji"),
+	"- [ ] #task a ⏳ 2026-01-01 📅 2026-09-12");
+eq("clearing one field leaves the others alone",
+	withoutDate("- [ ] #task a ⏳ 2026-01-01 📅 2026-02-02", "scheduled"),
+	"- [ ] #task a 📅 2026-02-02");
+eq("all three can sit on one line",
+	["scheduled", "due", "start"].reduce(
+		(line, field) => withDate(line, field, "2026-09-12", "dataview"), "- [ ] #task a"),
+	"- [ ] #task a  [scheduled:: 2026-09-12]  [due:: 2026-09-12]  [start:: 2026-09-12]");
 
 // --- across a selection ------------------------------------------------
 eq("task lines only", isTaskLine("## Tasks"), false);
 eq("indented task line", isTaskLine("\t- [x] done"), true);
 eq("stamps every task, skips the rest",
-	scheduleLines(["## Tasks", "- [ ] one", "", "  * [/] two", "plain prose"], "2026-09-12", "dataview"),
+	scheduleLines(["## Tasks", "- [ ] one", "", "  * [/] two", "plain prose"], "scheduled", "2026-09-12", "dataview"),
 	["## Tasks", "- [ ] one  [scheduled:: 2026-09-12]", "", "  * [/] two  [scheduled:: 2026-09-12]", "plain prose"]);
 eq("a null date clears instead",
-	scheduleLines(["- [ ] one ⏳ 2026-01-01", "## Tasks"], null, "emoji"),
+	scheduleLines(["- [ ] one ⏳ 2026-01-01", "## Tasks"], "scheduled", null, "emoji"),
 	["- [ ] one", "## Tasks"]);
+eq("a whole selection takes a due date",
+	scheduleLines(["- [ ] one", "- [ ] two"], "due", "2026-09-12", "emoji"),
+	["- [ ] one 📅 2026-09-12", "- [ ] two 📅 2026-09-12"]);
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

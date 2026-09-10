@@ -1,15 +1,20 @@
 import { App, Modal, moment, setIcon, setTooltip } from "obsidian";
+import {
+	DATE_FIELDS,
+	DateField,
+	FIELD_EMOJI,
+	FIELD_LABEL,
+	parseFieldPrefix
+} from "./actions";
 import { ISO, Moment, monthMatrix, parseDateInput, weekdayLabels } from "./dates";
 
 export interface ScheduleModalOptions {
 	/** Shown above the field: what is being scheduled. */
 	subject?: string;
-	/** The date the task already carries, if any. */
-	initial?: string | null;
-	/** Whether to offer clearing the date. Off when there is nothing to clear. */
-	allowClear?: boolean;
+	/** The date the task already carries for a field, if any. */
+	current?: (field: DateField) => string | null;
 	/** A date, or null meaning "remove the date". Not called when cancelled. */
-	onPick: (date: string | null) => void | Promise<void>;
+	onPick: (date: string | null, field: DateField) => void | Promise<void>;
 }
 
 /**
@@ -28,25 +33,50 @@ export class ScheduleModal extends Modal {
 	private grid: HTMLElement;
 	private monthLabel: HTMLElement;
 	private confirm: HTMLButtonElement;
+	private clear: HTMLButtonElement | null = null;
+	private fieldButtons = new Map<DateField, HTMLButtonElement>();
 
 	/** The month on show, which is not always the month of the selected day. */
 	private visible: Moment;
 	private selected: string | null;
+	/** Which date is being set. Scheduling is the common case, so it leads. */
+	private field: DateField = "scheduled";
+	/** True until the field is typed in, so switching can still refill it. */
+	private pristine = true;
 
 	constructor(app: App, options: ScheduleModalOptions) {
 		super(app);
 		this.options = options;
-		this.selected = options.initial ?? null;
+		this.selected = this.existing();
 		this.visible = (this.selected ? moment(this.selected, ISO) : moment()).startOf("month");
+	}
+
+	/** The date the task already carries for the field on show. */
+	private existing(): string | null {
+		return this.options.current?.(this.field) ?? null;
 	}
 
 	onOpen() {
 		const { contentEl, modalEl } = this;
 		modalEl.addClass("trc-schedule-modal");
-		this.titleEl.setText("Schedule task");
+		this.titleEl.setText("Set a date");
 
 		if (this.options.subject) {
 			contentEl.createDiv({ cls: "trc-schedule-subject", text: this.options.subject });
+		}
+
+		const fields = contentEl.createDiv({ cls: "trc-schedule-fields" });
+		for (const field of DATE_FIELDS) {
+			const button = fields.createEl("button", {
+				cls: "trc-schedule-field",
+				text: FIELD_EMOJI[field] + " " + FIELD_LABEL[field]
+			});
+			button.type = "button";
+			// Keep the caret in the text field: picking a date is still meant
+			// to be one burst of typing, mouse or no mouse.
+			button.addEventListener("mousedown", (event) => event.preventDefault());
+			button.addEventListener("click", () => this.setField(field));
+			this.fieldButtons.set(field, button);
 		}
 
 		this.input = contentEl.createEl("input", {
@@ -73,23 +103,24 @@ export class ScheduleModal extends Modal {
 		this.grid.addEventListener("keydown", (event) => this.onGridKey(event));
 
 		const footer = contentEl.createDiv({ cls: "trc-schedule-footer" });
-		if (this.options.allowClear) {
-			const clear = footer.createEl("button", {
-				cls: "trc-schedule-clear",
-				text: "Clear date"
-			});
-			clear.type = "button";
-			clear.addEventListener("click", () => this.commit(null));
-		}
+		this.clear = footer.createEl("button", { cls: "trc-schedule-clear", text: "Clear date" });
+		this.clear.type = "button";
+		this.clear.addEventListener("click", () => this.commit(null));
 
-		this.confirm = footer.createEl("button", { cls: "mod-cta", text: "Schedule" });
+		this.confirm = footer.createEl("button", { cls: "mod-cta" });
 		this.confirm.type = "button";
 		this.confirm.addEventListener("click", () => {
 			if (this.selected) this.commit(this.selected);
 		});
 
 		this.input.addEventListener("input", () => {
-			const parsed = parseDateInput(this.input.value);
+			this.pristine = false;
+			// A leading `due` or `start` switches the field as it is typed, so
+			// the whole prompt stays reachable without leaving the box.
+			const typed = parseFieldPrefix(this.input.value);
+			if (typed.field) this.field = typed.field;
+
+			const parsed = parseDateInput(typed.field ? typed.rest : this.input.value);
 			this.selected = parsed;
 			if (parsed) this.visible = moment(parsed, ISO).startOf("month");
 			this.refresh();
@@ -98,8 +129,7 @@ export class ScheduleModal extends Modal {
 		this.input.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter") return;
 			event.preventDefault();
-			const parsed = parseDateInput(this.input.value);
-			if (parsed) this.commit(parsed);
+			if (this.selected) this.commit(this.selected);
 		});
 
 		this.refresh();
@@ -126,16 +156,52 @@ export class ScheduleModal extends Modal {
 		});
 	}
 
+	/**
+	 * Switch which date is being set. An untouched box is refilled with what
+	 * the task already holds for the new field; anything typed is left alone,
+	 * since it is worth more than the prefill it would replace.
+	 */
+	private setField(field: DateField) {
+		this.field = field;
+
+		if (this.pristine) {
+			this.input.value = this.existing() ?? "";
+			this.selected = this.existing();
+			if (this.selected) this.visible = moment(this.selected, ISO).startOf("month");
+		} else {
+			// A typed `due ` prefix would otherwise flip the field straight
+			// back on the next keystroke.
+			const typed = parseFieldPrefix(this.input.value);
+			if (typed.field) this.input.value = typed.rest;
+		}
+
+		this.input.focus();
+		this.refresh();
+	}
+
 	private async commit(date: string | null) {
 		this.close();
-		await this.options.onPick(date);
+		await this.options.onPick(date, this.field);
 	}
 
 	/** Redraw the month grid and everything that depends on the selection. */
 	private refresh() {
 		const today = moment().format(ISO);
+		const label = FIELD_LABEL[this.field].toLowerCase();
+
 		this.monthLabel.setText(this.visible.format("MMMM YYYY"));
 		this.confirm.disabled = this.selected === null;
+		this.confirm.setText(`Set ${label} date`);
+
+		for (const [field, button] of this.fieldButtons) {
+			button.toggleClass("is-active", field === this.field);
+		}
+
+		// Nothing to clear until the task actually carries this date.
+		if (this.clear) {
+			this.clear.toggleClass("trc-hidden", this.existing() === null);
+			this.clear.setText(`Clear ${label} date`);
+		}
 
 		if (!this.input.value.trim()) {
 			this.hint.setText("Type a date, or pick one below.");

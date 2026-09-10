@@ -1,5 +1,5 @@
 import { taskLineIndices } from "../src/inline.ts";
-import { lineSubject, scheduleOf } from "../src/actions.ts";
+import { dateOn, lineSubject, parseFieldPrefix } from "../src/actions.ts";
 
 let pass = 0, fail = 0;
 const eq = (name, got, want) => {
@@ -38,10 +38,32 @@ eq("other tags stay",
 	lineSubject("- [ ] #task write it up #work", "#task"), "write it up #work");
 
 // --- reading a date back off a line ------------------------------------
-eq("dataview date", scheduleOf("- [ ] a  [scheduled:: 2026-09-12]"), "2026-09-12");
-eq("emoji date", scheduleOf("- [ ] a ⏳ 2026-09-12"), "2026-09-12");
-eq("no date", scheduleOf("- [ ] a"), null);
-eq("a due date is not a scheduled date", scheduleOf("- [ ] a  [due:: 2026-09-12]"), null);
+eq("dataview date", dateOn("- [ ] a  [scheduled:: 2026-09-12]", "scheduled"), "2026-09-12");
+eq("emoji date", dateOn("- [ ] a ⏳ 2026-09-12", "scheduled"), "2026-09-12");
+eq("no date", dateOn("- [ ] a", "scheduled"), null);
+eq("a due date is not a scheduled date", dateOn("- [ ] a  [due:: 2026-09-12]", "scheduled"), null);
+eq("due, dataview", dateOn("- [ ] a  [due:: 2026-09-12]", "due"), "2026-09-12");
+eq("due, emoji", dateOn("- [ ] a 📅 2026-09-12", "due"), "2026-09-12");
+eq("start, emoji", dateOn("- [ ] a 🛫 2026-09-12", "start"), "2026-09-12");
+eq("each field reads its own",
+	["scheduled", "due", "start"].map((f) => dateOn("- [ ] a ⏳ 2026-01-01 📅 2026-02-02 🛫 2026-03-03", f)),
+	["2026-01-01", "2026-02-02", "2026-03-03"]);
+
+// --- a field named at the head of the input -----------------------------
+eq("due prefix", parseFieldPrefix("due friday"), { field: "due", rest: "friday" });
+eq("start prefix", parseFieldPrefix("start +3d"), { field: "start", rest: "+3d" });
+eq("scheduled prefix and its short forms",
+	["scheduled", "schedule", "sched"].map((w) => parseFieldPrefix(w + " fri").field),
+	["scheduled", "scheduled", "scheduled"]);
+eq("case ignored", parseFieldPrefix("DUE fri"), { field: "due", rest: "fri" });
+eq("a bare field name leaves nothing to parse",
+	parseFieldPrefix("due"), { field: "due", rest: "" });
+eq("no prefix passes the input through",
+	parseFieldPrefix("friday"), { field: null, rest: "friday" });
+eq("a date is not a prefix", parseFieldPrefix("2026-09-12"), { field: null, rest: "2026-09-12" });
+eq("an unknown word is not a prefix",
+	parseFieldPrefix("duesday fri"), { field: null, rest: "duesday fri" });
+eq("empty input", parseFieldPrefix(""), { field: null, rest: "" });
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

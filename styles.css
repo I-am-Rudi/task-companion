@@ -106,6 +106,10 @@ body.is-mobile .trc-actions,
 	white-space: nowrap;
 }
 
+.trc-hidden {
+	display: none;
+}
+
 .trc-item.is-retired > .trc-row,
 .trc-item.is-retired .trc-sublist {
 	opacity: 0.5;
@@ -179,6 +183,34 @@ body.is-mobile .trc-inline-schedule {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* Which of the three dates is being set. Scheduling leads because it is what
+   the blocks read, but due and start are one click — or one typed word — away. */
+.trc-schedule-fields {
+	display: flex;
+	gap: var(--size-2-1);
+	margin-bottom: var(--size-2-3);
+}
+
+.trc-schedule-field {
+	flex: 1;
+	background: var(--background-modifier-form-field);
+	box-shadow: none;
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	padding: var(--size-2-2) var(--size-2-1);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+.trc-schedule-field:hover {
+	color: var(--text-normal);
+}
+
+.trc-schedule-field.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
 }
 
 .trc-schedule-input {

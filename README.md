@@ -90,9 +90,23 @@ and walk it with the arrow keys (page up and down move by month). If the task
 already has a date, it's there when the prompt opens, and **Clear date** removes
 it.
 
+**Three dates, not one.** The buttons at the top choose which one you're
+setting: ⏳ scheduled (the default, and the one the blocks read), 📅 due, or
+🛫 start. You can stay on the keyboard for that too — lead with the field name
+and the prompt follows:
+
+    due friday        →  📅 the coming Friday
+    start +3d         →  🛫 three days out
+    fri               →  ⏳ the coming Friday
+
+Each field is written and cleared independently, so a task can carry all three.
+These are the Tasks plugin's own three planning dates; its record-keeping ones —
+created, done and cancelled — are left out, because they mark something that
+already happened and this prompt only ever resolves forwards.
+
 The date is written in whichever notation *Schedule format* is set to —
-`[scheduled:: 2026-12-01]` or `⏳ 2026-12-01` — replacing any date already on the
-line, in either notation. A selection spanning several tasks schedules them all
+`[due:: 2026-12-01]` or `📅 2026-12-01` — replacing any date already on the line
+for that field, in either notation. A selection spanning several tasks schedules them all
 in one step; lines that aren't checklist items are left alone. There's no
 default hotkey — bind one in Settings → Hotkeys.
 
