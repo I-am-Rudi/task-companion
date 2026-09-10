@@ -1,23 +1,28 @@
 # Task Rollover Companion
 
-An Obsidian plugin for the tasks you didn't finish.
+A Plugin providing some convenience features for interacting with the Task
+plugin. I have been always uncomfortable with auto rollover, as it is easy to
+loose track and be unintentional about what is being rolled over. The other
+option manual rollover is intentional but unnecessarily tedious.
 
-Place a `rollover` code block anywhere in a note or template and it renders an
-interactive inbox: move tasks forward into today's note, park them for later,
-schedule them, or tick them off — each action writing straight back to the note
-the task actually lives in.
+I wanted the best of both worlds automatic collection and intentional rollover.
+Which not only feels natural but also looks appealing and intuitive. For the
+longest time this was solved by stupidly long dataview-js queries, but not
+anymore. To preserve my own sanity and maybe yours, if your brain is wired like
+mine, I present the plugin version of these stupidly long dataview-js queries.
+
+The main idea: Have rollover blocks you engage with intentionally from which you
+can directly edit the notes you query.
+
+I have furthermore added some convenience features I always wanted with Tasks. I
+mean if I am making a plugin anyway, way wouldn't I? So enter on a task not only
+autocompletes bullets but also the filter tag. And you have two commands, one
+for scheduling a task that is not yet scheduled and one for toggling task on a
+line or checkbox. Furthermore, commands to put dates on a task from a pop up.
 
 It works with [Periodic Notes](https://github.com/liamcain/obsidian-periodic-notes)
 when that's installed, reading folders and date formats from its settings, and
-works perfectly well on its own using its own settings. Obsidian has no plugin
-dependency mechanism, so the integration is detected at runtime and is entirely
-optional.
-
-## Installation (manual)
-
-Copy `main.js`, `manifest.json` and `styles.css` from a release into
-`<vault>/.obsidian/plugins/task-rollover-companion/`, then enable the plugin in
-Settings → Community plugins.
+works perfectly well on its own using its own settings.
 
 ## Tagging tasks
 
@@ -66,7 +71,7 @@ The same prompt is a click away too: hover a tagged task anywhere in a note, in
 either editing or reading view, and a calendar icon appears beside it. Turn that
 off with *Calendar icon on tagged tasks* if you'd rather use the command alone.
 
-The field takes rather more than an ISO date:
+The field takes rather more than an ISO date (like in the natural language plugin):
 
 | You type | You get |
 | --- | --- |
