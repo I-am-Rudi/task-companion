@@ -1,5 +1,5 @@
 import { Editor, MarkdownPostProcessorContext, Notice, Plugin, TAbstractFile, TFile } from "obsidian";
-import { dateOn, scheduleInEditor, selectionDate, selectionHasTask } from "./actions";
+import { scheduleInEditor, selectionDate, selectionHasTask } from "./actions";
 import { inlineScheduleExtension, inlineSchedulePostProcessor } from "./inline";
 import { ScheduleModal } from "./schedule";
 import { DEFAULT_SETTINGS, RolloverSettings, RolloverSettingTab } from "./settings";

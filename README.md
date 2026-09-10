@@ -1,4 +1,4 @@
-# Task Companion
+# Tasks Companion
 
 <p align="center">
   <img src="./assets/overview.gif" width="400" alt="A first look at Workout Journal">
@@ -229,9 +229,19 @@ line-edit layer that writes to files. Anything needing a live app — rendering,
 the settings tab, the date prompt, the metadata cache — has to be tried in
 Obsidian.
 
-Releases are cut by pushing a tag: the workflow in `.github/workflows/main.yml`
-stamps the version into `manifest.json`, `versions.json` and `package.json`,
-builds, and attaches `main.js`, `manifest.json` and `styles.css` to the release.
+Releases are cut by pushing a tag named for the version:
+
+```sh
+git tag 0.1.1 && git push origin 0.1.1
+```
+
+The workflow in `.github/workflows/main.yml` stamps the version into
+`manifest.json`, `versions.json` and `package.json`, commits that to the default
+branch, and moves the tag onto that commit, so the release comes from a commit
+whose manifest carries its version. It then builds, attests the build's
+provenance, and attaches `main.js`, `manifest.json` and `styles.css` to the
+release. Afterwards, `git pull` and `git fetch --tags --force` bring the bump
+commit and the moved tag back locally.
 
 ## License
 

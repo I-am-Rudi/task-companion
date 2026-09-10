@@ -1,4 +1,4 @@
-import { App, Modal, moment, setIcon, setTooltip } from "obsidian";
+import { App, Modal, setIcon, setTooltip } from "obsidian";
 import {
 	DATE_FIELDS,
 	DateField,
@@ -6,7 +6,8 @@ import {
 	FIELD_LABEL,
 	parseFieldPrefix
 } from "./actions";
-import { ISO, Moment, monthMatrix, parseDateInput, weekdayLabels } from "./dates";
+import { ISO, monthMatrix, parseDateInput, weekdayLabels } from "./dates";
+import { moment, type Moment } from "./moment";
 
 export interface ScheduleModalOptions {
 	/** Shown above the field: what is being scheduled. */
@@ -105,12 +106,12 @@ export class ScheduleModal extends Modal {
 		const footer = contentEl.createDiv({ cls: "trc-schedule-footer" });
 		this.clear = footer.createEl("button", { cls: "trc-schedule-clear", text: "Clear date" });
 		this.clear.type = "button";
-		this.clear.addEventListener("click", () => this.commit(null));
+		this.clear.addEventListener("click", () => void this.commit(null));
 
 		this.confirm = footer.createEl("button", { cls: "mod-cta" });
 		this.confirm.type = "button";
 		this.confirm.addEventListener("click", () => {
-			if (this.selected) this.commit(this.selected);
+			if (this.selected) void this.commit(this.selected);
 		});
 
 		this.input.addEventListener("input", () => {
@@ -129,7 +130,7 @@ export class ScheduleModal extends Modal {
 		this.input.addEventListener("keydown", (event) => {
 			if (event.key !== "Enter") return;
 			event.preventDefault();
-			if (this.selected) this.commit(this.selected);
+			if (this.selected) void this.commit(this.selected);
 		});
 
 		this.refresh();
@@ -238,7 +239,7 @@ export class ScheduleModal extends Modal {
 				cell.toggleClass("is-today", date === today);
 				cell.toggleClass("is-selected", date === this.selected);
 				cell.setAttr("aria-label", day.format("dddd, D MMMM YYYY"));
-				cell.addEventListener("click", () => this.commit(date));
+				cell.addEventListener("click", () => void this.commit(date));
 			}
 		}
 	}
