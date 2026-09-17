@@ -249,6 +249,94 @@ export async function moveTask(
 	return true;
 }
 
+export interface LineRange {
+	/** Inclusive. */
+	from: number;
+	/** Inclusive. */
+	to: number;
+}
+
+/** Every line a cursor or selection touches, one range per selection. */
+export function selectedLineRanges(editor: Editor): LineRange[] {
+	return editor.listSelections().map((selection) => ({
+		from: Math.min(selection.anchor.line, selection.head.line),
+		to: Math.max(selection.anchor.line, selection.head.line)
+	}));
+}
+
+/**
+ * The task blocks a set of line ranges touches, in file order. A task inside a
+ * block already taken is skipped — it travels with its parent — so no two
+ * blocks overlap. Lines that aren't tasks contribute nothing.
+ */
+export function taskBlocksIn(lines: string[], ranges: LineRange[]): { start: number; end: number }[] {
+	const touched = new Set<number>();
+	for (const { from, to } of ranges) {
+		for (let line = Math.max(0, from); line <= Math.min(to, lines.length - 1); line++) {
+			touched.add(line);
+		}
+	}
+
+	const blocks: { start: number; end: number }[] = [];
+	let covered = 0;
+	for (const line of Array.from(touched).sort((a, b) => a - b)) {
+		if (line < covered || !isTaskLine(lines[line])) continue;
+		const end = blockEnd(lines, line);
+		blocks.push({ start: line, end });
+		covered = end;
+	}
+	return blocks;
+}
+
+/**
+ * Move every task block the ranges touch into another note, under a heading.
+ * Each parent line leaves its dates and inline fields behind, as every move
+ * does. Insert before cut, as `moveTask` does; and if the source changed while
+ * the insert was being written, the cut is skipped, leaving a duplicate rather
+ * than removing the wrong lines.
+ *
+ * Returns null when nothing in the ranges is a task, otherwise how many blocks
+ * were moved and whether they were also cut from the source.
+ */
+export async function moveTasksInRanges(
+	app: App,
+	sourcePath: string,
+	ranges: LineRange[],
+	targetPath: string,
+	heading: string
+): Promise<{ moved: number; cut: boolean } | null> {
+	const file = app.vault.getFileByPath(sourcePath);
+	if (!file) return null;
+
+	const editor = activeEditorFor(app, file);
+	const lines = (editor ? editor.getValue() : await app.vault.cachedRead(file)).split("\n");
+	const blocks = taskBlocksIn(lines, ranges);
+	if (blocks.length === 0) return null;
+
+	const moved = blocks.flatMap((block) => extractBlock(lines, block.start));
+	if (!(await insertUnderHeading(app, targetPath, heading, moved))) {
+		return { moved: 0, cut: false };
+	}
+
+	const cut = await applyEdits(app, file, (now) => {
+		const unchanged = blocks.every(
+			({ start, end }) => now.slice(start, end).join("\n") === lines.slice(start, end).join("\n")
+		);
+		if (!unchanged) return [];
+
+		// Adjacent blocks are removed as one run, so no two edits touch.
+		const runs: { start: number; end: number }[] = [];
+		for (const block of blocks) {
+			const last = runs[runs.length - 1];
+			if (last && last.end === block.start) last.end = block.end;
+			else runs.push({ ...block });
+		}
+		return runs.map(({ start, end }): Edit => ({ kind: "removeLines", from: start, to: end }));
+	});
+
+	return { moved: blocks.length, cut };
+}
+
 export async function editTaskLine(
 	app: App,
 	task: LineRef,
@@ -265,8 +353,29 @@ export async function editTaskLine(
 	});
 }
 
+/**
+ * The states a block's status menu offers: the Tasks plugin's core four, under
+ * its symbols, so a line changed here reads the same there.
+ */
+export const TASK_STATUSES: { symbol: string; label: string }[] = [
+	{ symbol: " ", label: "Todo" },
+	{ symbol: "/", label: "In progress" },
+	{ symbol: "x", label: "Done" },
+	{ symbol: "-", label: "Cancelled" }
+];
+
+/** Unfinished work, which is what rolls over. In progress still counts. */
+export function isOpenStatus(status: string): boolean {
+	return status === " " || status === "" || status === "/";
+}
+
+/** Rewrite a task line's checkbox. Only the first `[.]` is the checkbox. */
+export function setStatus(line: string, status: string): string {
+	return line.replace(/\[.\]/, "[" + status + "]");
+}
+
 export function markDone(line: string): string {
-	return line.replace(/\[.\]/, "[x]");
+	return setStatus(line, "x");
 }
 
 /** A checklist item, at any indent. Scheduling only ever touches these. */

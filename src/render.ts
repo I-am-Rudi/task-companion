@@ -1,12 +1,14 @@
-import { MarkdownRenderChild, Notice, setIcon, setTooltip } from "obsidian";
+import { MarkdownRenderChild, Menu, Notice, setIcon, setTooltip } from "obsidian";
 import type TaskRolloverPlugin from "./main";
 import {
 	dateOn,
 	displayText,
 	FIELD_LABEL,
 	editTaskLine,
-	markDone,
+	isOpenStatus,
 	moveTask,
+	setStatus,
+	TASK_STATUSES,
 	withDate,
 	withoutDate
 } from "./actions";
@@ -91,6 +93,90 @@ export function parseBlockOptions(source: string): BlockOptions {
 	return options;
 }
 
+interface StatusView {
+	item: HTMLElement;
+	checkbox: HTMLInputElement;
+	label: HTMLElement;
+}
+
+/**
+ * Draw a status the way Obsidian draws it in a note: any non-blank symbol is a
+ * ticked box, and `data-task` carries the symbol so themes can give in progress
+ * and cancelled their own glyphs.
+ */
+function showStatus({ item, checkbox, label }: StatusView, status: string) {
+	const symbol = status === "" ? " " : status;
+	checkbox.checked = symbol !== " ";
+	checkbox.dataset.task = symbol;
+	item.dataset.task = symbol;
+	label.toggleClass("is-done", symbol === "x" || symbol === "X");
+	label.toggleClass("is-cancelled", symbol === "-");
+}
+
+const LONG_PRESS_MS = 500;
+/** How long after a long press its trailing click is still ignored. */
+const LONG_PRESS_CLICK_GRACE_MS = 800;
+
+/**
+ * Right click, or a long press on touch. iOS never turns a long press into a
+ * `contextmenu` event, so the press is timed by hand; Android does, so the two
+ * are deduplicated, and the click a lifted finger produces is swallowed rather
+ * than ticking the box.
+ */
+function onSecondaryPress(el: HTMLElement, handler: (position: { x: number; y: number }) => void) {
+	let timer: number | null = null;
+	let suppressUntil = 0;
+
+	const cancel = () => {
+		if (timer !== null) {
+			window.clearTimeout(timer);
+			timer = null;
+		}
+	};
+	const fire = (x: number, y: number) => {
+		suppressUntil = Date.now() + LONG_PRESS_CLICK_GRACE_MS;
+		handler({ x, y });
+	};
+
+	el.addEventListener(
+		"touchstart",
+		(event) => {
+			cancel();
+			const touch = event.touches[0];
+			if (!touch) return;
+			const { clientX, clientY } = touch;
+			timer = window.setTimeout(() => {
+				timer = null;
+				fire(clientX, clientY);
+			}, LONG_PRESS_MS);
+		},
+		{ passive: true }
+	);
+	el.addEventListener("touchmove", cancel, { passive: true });
+	el.addEventListener("touchcancel", cancel);
+	el.addEventListener("touchend", (event) => {
+		cancel();
+		if (Date.now() < suppressUntil) event.preventDefault();
+	});
+
+	el.addEventListener("contextmenu", (event) => {
+		event.preventDefault();
+		event.stopPropagation();
+		// Android's own long press arrives here too, before or after the timer.
+		if (Date.now() < suppressUntil) return;
+		const duringTouch = timer !== null;
+		cancel();
+		if (duringTouch) fire(event.clientX, event.clientY);
+		else handler({ x: event.clientX, y: event.clientY });
+	});
+
+	el.addEventListener("click", (event) => {
+		if (Date.now() >= suppressUntil) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+	});
+}
+
 export class RolloverBlock extends MarkdownRenderChild {
 	private plugin: TaskRolloverPlugin;
 	private options: BlockOptions;
@@ -127,7 +213,7 @@ export class RolloverBlock extends MarkdownRenderChild {
 	}
 
 	private isOpen(task: TaskItem): boolean {
-		return task.status === " " || task.status === "";
+		return isOpenStatus(task.status);
 	}
 
 	private isTagged(task: TaskItem): boolean {
@@ -238,31 +324,41 @@ export class RolloverBlock extends MarkdownRenderChild {
 	private renderTask(list: HTMLElement, task: TaskItem, isRoot: boolean) {
 		const item = list.createEl("li", { cls: "trc-item" });
 		const row = item.createDiv({ cls: "trc-row" });
-		const done = !this.isOpen(task);
 
 		const checkbox = row.createEl("input", {
 			cls: "task-list-item-checkbox trc-check",
 			type: "checkbox"
 		});
-		checkbox.checked = done;
-		setTooltip(checkbox, "Mark done in the source note");
+		setTooltip(checkbox, "Toggle done in the source note. Right-click for other states.");
 
 		const label = row.createSpan({ cls: "trc-text", text: displayText(task, this.settings.taskTag) });
-		label.toggleClass("is-done", done);
+		const view = { item, checkbox, label };
+		showStatus(view, task.status);
 
+		// Registered before the click handler, so a long press can swallow the
+		// click that follows it.
+		onSecondaryPress(checkbox, (position) => this.showStatusMenu(task, view, position));
+
+		// A plain click ticks an unfinished task and unticks a finished one, as
+		// in a note. Only root rows are always unfinished; subtasks can be either.
 		checkbox.addEventListener("click", (event) => {
 			event.stopPropagation();
-			void this.markTaskDone(task, checkbox, label);
+			const current = checkbox.dataset.task ?? task.status;
+			void this.setTaskStatus(task, view, isOpenStatus(current) ? "x" : " ");
 		});
 
 		if (isRoot) {
+			// Source and actions wrap as one group, so on a narrow screen they
+			// drop beneath the text together instead of squeezing it.
+			const meta = row.createDiv({ cls: "trc-meta" });
+
 			const showSource = this.options.showSource ?? this.options.mode !== "collection";
 			if (showSource) {
 				const name = task.path.split("/").pop()?.replace(/\.md$/, "") ?? task.path;
-				row.createSpan({ cls: "trc-source", text: name });
+				meta.createSpan({ cls: "trc-source", text: name });
 			}
 
-			const actions = row.createDiv({ cls: "trc-actions" });
+			const actions = meta.createDiv({ cls: "trc-actions" });
 			// Emoji rows are always visible, so they read as part of the task
 			// line the way the Tasks plugin's do, rather than as a hover menu.
 			actions.toggleClass("is-emoji", this.settings.actionStyle === "emoji");
@@ -281,16 +377,38 @@ export class RolloverBlock extends MarkdownRenderChild {
 		}
 	}
 
-	private async markTaskDone(task: TaskItem, checkbox: HTMLInputElement, label: HTMLElement) {
-		checkbox.disabled = true;
-		const ok = await editTaskLine(this.plugin.app, task, markDone);
+	/**
+	 * Write a status to the source line and show it straight away. The index
+	 * catches up a moment later and redraws the block, which is when a done or
+	 * cancelled task leaves it.
+	 */
+	private async setTaskStatus(task: TaskItem, view: StatusView, status: string) {
+		const previous = view.checkbox.dataset.task ?? task.status;
+		view.checkbox.disabled = true;
+		showStatus(view, status);
+
+		const ok = await editTaskLine(this.plugin.app, task, (line) => setStatus(line, status));
+		view.checkbox.disabled = false;
 		if (!ok) {
-			checkbox.checked = false;
-			checkbox.disabled = false;
+			showStatus(view, previous);
 			new Notice("Could not find that task in its note.");
-			return;
 		}
-		label.addClass("is-done");
+	}
+
+	private showStatusMenu(task: TaskItem, view: StatusView, position: { x: number; y: number }) {
+		const current = view.checkbox.dataset.task ?? task.status;
+		const menu = new Menu();
+		for (const { symbol, label } of TASK_STATUSES) {
+			menu.addItem((item) =>
+				item
+					.setTitle(label)
+					.setChecked(symbol === current)
+					.onClick(() => {
+						if (symbol !== current) void this.setTaskStatus(task, view, symbol);
+					})
+			);
+		}
+		menu.showAtPosition(position);
 	}
 
 	/**

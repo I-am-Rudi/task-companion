@@ -1,5 +1,21 @@
-import { Editor, MarkdownPostProcessorContext, Notice, Plugin, TAbstractFile, TFile } from "obsidian";
-import { scheduleInEditor, selectionDate, selectionHasTask } from "./actions";
+import {
+	Editor,
+	MarkdownFileInfo,
+	MarkdownPostProcessorContext,
+	MarkdownView,
+	Notice,
+	Plugin,
+	TAbstractFile,
+	TFile
+} from "obsidian";
+import {
+	moveTasksInRanges,
+	scheduleInEditor,
+	selectedLineRanges,
+	selectionDate,
+	selectionHasTask
+} from "./actions";
+import { noteAt } from "./paths";
 import { inlineScheduleExtension, inlineSchedulePostProcessor } from "./inline";
 import { ScheduleModal } from "./schedule";
 import { DEFAULT_SETTINGS, RolloverSettings, RolloverSettingTab } from "./settings";
@@ -77,6 +93,50 @@ export default class TaskRolloverPlugin extends Plugin {
 						if (changed === 0) new Notice("No task on this line.");
 					}
 				}).open();
+			}
+		});
+
+		// Any task, tagged or not, at any time — the in-note counterpart of the
+		// periodic block's "put on hold" button, and like it, the parent line
+		// leaves its dates behind.
+		this.addCommand({
+			id: "move-task-to-collection",
+			name: "Move the task on the current line or selection to the collection note",
+			editorCallback: async (editor: Editor, ctx: MarkdownView | MarkdownFileInfo) => {
+				const source = ctx.file;
+				if (!source) return;
+				const target = noteAt(this.app.vault, this.settings.collectionNote);
+				if (!target) {
+					new Notice(
+						this.settings.collectionNote
+							? `Collection note not found: ${this.settings.collectionNote}`
+							: "No collection note is set."
+					);
+					return;
+				}
+				if (target.path === source.path) {
+					new Notice("This is the collection note already.");
+					return;
+				}
+
+				const result = await moveTasksInRanges(
+					this.app,
+					source.path,
+					selectedLineRanges(editor),
+					target.path,
+					this.settings.tasksHeading
+				);
+				if (!result) new Notice("No task on this line.");
+				else if (result.moved === 0) new Notice("Could not move that task.");
+				else if (!result.cut) {
+					new Notice("The note changed during the move, so the task was copied, not moved.");
+				} else {
+					new Notice(
+						result.moved === 1
+							? `Moved to ${target.basename}.`
+							: `Moved ${result.moved} tasks to ${target.basename}.`
+					);
+				}
 			}
 		});
 
