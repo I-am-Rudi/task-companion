@@ -1,4 +1,4 @@
-import { readBlock, removeBlock, insertUnderHeading, moveTask, editTaskLine, markDone, withDate, stripAnnotations } from "../src/actions.ts";
+import { readBlock, removeBlock, insertUnderHeading, moveTask, moveTasksInRanges, taskBlocksIn, editTaskLine, markDone, setStatus, isOpenStatus, withDate, stripAnnotations } from "../src/actions.ts";
 import { parseTasks } from "../src/taskIndex.ts";
 import { TFile } from "obsidian";
 
@@ -147,6 +147,62 @@ async function main() {
 	const src = "- [ ] #task gone";
 	const { app } = makeApp({ "a.md": "unrelated content" });
 	eq("missing task reports failure", await editTaskLine(app, task("a.md", src), markDone), false);
+}
+
+// --- task statuses ------------------------------------------------------
+eq("in progress", setStatus("- [ ] #task a", "/"), "- [/] #task a");
+eq("cancelled, indented", setStatus("\t- [ ] #task a", "-"), "\t- [-] #task a");
+eq("back to todo", setStatus("- [x] #task a", " "), "- [ ] #task a");
+eq("only the checkbox changes", setStatus("- [ ] see [x] in text", "/"), "- [/] see [x] in text");
+eq("open statuses", [" ", "", "/", "x", "X", "-"].map(isOpenStatus), [true, true, true, false, false, false]);
+{
+	const src = ["intro", "- [ ] #task start me"].join("\n");
+	const { app, read } = makeApp({ "a.md": src });
+	await editTaskLine(app, task("a.md", src), (l) => setStatus(l, "/"));
+	eq("status written to the source", read("a.md"), "intro\n- [/] #task start me");
+}
+
+// --- which blocks a selection moves ------------------------------------------
+{
+	const lines = ["# Day", "- [ ] one", "\t- [ ] sub", "- [ ] two", "prose", "- [ ] three"];
+	eq("cursor on a parent takes its subtasks",
+		taskBlocksIn(lines, [{ from: 1, to: 1 }]), [{ start: 1, end: 3 }]);
+	eq("a subtask inside a taken block isn't taken twice",
+		taskBlocksIn(lines, [{ from: 1, to: 3 }]), [{ start: 1, end: 3 }, { start: 3, end: 4 }]);
+	eq("cursor on a subtask takes only it",
+		taskBlocksIn(lines, [{ from: 2, to: 2 }]), [{ start: 2, end: 3 }]);
+	eq("non-task lines contribute nothing",
+		taskBlocksIn(lines, [{ from: 0, to: 0 }, { from: 4, to: 4 }]), []);
+	eq("several cursors, in file order",
+		taskBlocksIn(lines, [{ from: 5, to: 5 }, { from: 3, to: 3 }]), [{ start: 3, end: 4 }, { start: 5, end: 6 }]);
+}
+
+// --- moving a selection to the collection note ------------------------------
+{
+	const src = ["# Day", "- [ ] #task park me  [scheduled:: 2026-09-20] 📅 2026-09-30", "\t- [ ] sub", "- [ ] stay", "- [ ] untagged too ⏳ 2026-09-18"].join("\n");
+	const { app, read } = makeApp({ "d.md": src, "c.md": "## Tasks\n" });
+	eq("reports what moved",
+		await moveTasksInRanges(app, "d.md", [{ from: 1, to: 1 }, { from: 4, to: 4 }], "c.md", "## Tasks"),
+		{ moved: 2, cut: true });
+	eq("collection gains both, dates stripped, subtask kept", read("c.md"),
+		"## Tasks\n- [ ] #task park me\n\t- [ ] sub\n- [ ] untagged too\n");
+	eq("source loses both", read("d.md"), "# Day\n- [ ] stay");
+}
+{
+	const src = ["- [ ] a", "- [ ] b", "- [ ] c"].join("\n");
+	const { app, read } = makeApp({ "d.md": src, "c.md": "" });
+	await moveTasksInRanges(app, "d.md", [{ from: 0, to: 1 }], "c.md", "## Tasks");
+	eq("adjacent blocks cut as one run", read("d.md"), "- [ ] c");
+}
+{
+	const { app } = makeApp({ "d.md": "just prose", "c.md": "" });
+	eq("nothing to move", await moveTasksInRanges(app, "d.md", [{ from: 0, to: 0 }], "c.md", "## Tasks"), null);
+}
+{
+	const { app, read } = makeApp({ "d.md": "- [ ] a" });
+	eq("missing target reports failure",
+		await moveTasksInRanges(app, "d.md", [{ from: 0, to: 0 }], "gone.md", "## Tasks"), { moved: 0, cut: false });
+	eq("and leaves the source intact", read("d.md"), "- [ ] a");
 }
 
 // --- emoji dates are stripped whole --------------------------------------

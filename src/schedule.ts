@@ -134,7 +134,15 @@ export class ScheduleModal extends Modal {
 		});
 
 		this.refresh();
+	}
 
+	/**
+	 * Focus lands here rather than in `onOpen`, because `Modal.open` runs
+	 * `onOpen` and then, with a physical keyboard, focuses the first focusable
+	 * element itself — which is the Scheduled button, not the field.
+	 */
+	open() {
+		super.open();
 		// Selecting rather than just focusing means typing over an existing
 		// date replaces it, and the arrow keys still work for editing.
 		this.input.focus();

@@ -37,6 +37,7 @@
 
 .trc-row {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: baseline;
 	gap: var(--size-2-2);
 	padding: var(--size-2-1) 0;
@@ -49,7 +50,6 @@
 	display: flex;
 	align-items: center;
 	gap: var(--size-2-1);
-	margin-left: auto;
 	opacity: 0;
 	transition: opacity 100ms ease-in-out;
 }
@@ -90,7 +90,12 @@ body.is-mobile .trc-actions,
 	margin: 0;
 }
 
+/* The text claims the line. When it and the meta group can't share one — a
+   phone, a narrow sidebar — the meta group wraps beneath it instead of the
+   text being squeezed into a sliver. */
 .trc-text {
+	flex: 1 1 10rem;
+	min-width: 0;
 	color: var(--text-normal);
 	overflow-wrap: anywhere;
 }
@@ -100,10 +105,29 @@ body.is-mobile .trc-actions,
 	color: var(--text-muted);
 }
 
+.trc-text.is-cancelled {
+	text-decoration: line-through;
+	color: var(--text-faint);
+}
+
+/* Source note and actions, kept together and to the right, on the first line
+   or the next. */
+.trc-meta {
+	display: flex;
+	align-items: center;
+	gap: var(--size-2-2);
+	margin-left: auto;
+	min-width: 0;
+	max-width: 100%;
+}
+
 .trc-source {
 	color: var(--text-faint);
 	font-size: var(--font-ui-smaller);
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	min-width: 0;
 }
 
 .trc-hidden {

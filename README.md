@@ -114,6 +114,16 @@ for that field, in either notation. A selection spanning several tasks schedules
 in one step; lines that aren't checklist items are left alone. There's no
 default hotkey — bind one in Settings → Hotkeys.
 
+## Parking a task
+
+**Move the task on the current line or selection to the collection note.** Run
+it on any task, anywhere, tagged or not — it's the in-note version of a periodic
+block's *put on hold* button. The task goes under the target heading in the
+collection note with its subtasks, and leaves its dates behind: scheduled, due
+and start come off the parent line, so a parked task shows up as unscheduled
+again. With several tasks selected, they all go in one step. There's no default
+hotkey — bind one in Settings → Hotkeys.
+
 ## Blocks
 
 Three modes, each placed as its own block so you can position them freely.
@@ -168,7 +178,10 @@ automatically.
 
 Each row carries the actions that make sense for it:
 
-- **checkbox** — writes `[x]` to the line in its source note
+- **checkbox** — writes `[x]` to the line in its source note. Right-click it (or
+  long-press on a phone) for the other states: todo, in progress `[/]`, done and
+  cancelled `[-]`. In-progress tasks count as unfinished, so they keep rolling
+  over; done and cancelled ones drop out.
 - **open** — open the source note
 - **move here** — move the task and its subtasks under the target heading in the current note
 - **put on hold** — move the task and its subtasks to the collection note (`periodic` mode)
